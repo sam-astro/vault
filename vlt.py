@@ -14,6 +14,7 @@ import json
 import pwd
 import re
 import readline
+import secrets
 
 buffer_size = 65536 # 64kb
 
@@ -27,7 +28,9 @@ vaultData = []
 configData = []
 
 
-COMMANDS = ['encrypt', 'decrypt', 'exit', 'quit', 'list', 'new', 'create', 'append', 'remove']
+
+ORIGINALCOMMANDS = ['encrypt', 'decrypt', 'exit', 'quit', 'list', 'new', 'create', 'append', 'remove', 'passrefresh', 'passcreate']
+COMMANDS = ORIGINALCOMMANDS
 RE_SPACE = re.compile('.*\s+$', re.M)
 
 startScreenLogo = "\n██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗\n██║   ██║██╔══██╗██║   ██║██║  ╚══██╔══╝\n╚██╗ ██╔╝██╔══██║██║   ██║██║     ██║   \n ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║   \n  ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝   \n                                        "
@@ -101,17 +104,14 @@ def encrypt(data, password):
     }
     
     # Encode dictionary to a JSON string
-    # jsonOut = json.dumps(output_json)
     compressed_data = zlib.compress(cipher.iv + ciphered_data)
     
     return compressed_data
-    # return jsonOut
  
  
 def decrypt(enc, password):
     decompressed_data = zlib.decompress(enc)
     # Now to get all the data for decryption:
-    # input_json = json.loads(enc)
     
     key = PBKDF2(password, salt, dkLen=32) # Your key that you can encrypt with
     iv = decompressed_data[0:16]
@@ -122,7 +122,16 @@ def decrypt(enc, password):
     return original_data
     
 def refreshCommands():
-    COMMANDS = ['encrypt', 'decrypt', 'exit', 'quit', 'list', 'new', 'create', 'append', 'remove']
+    COMMANDS = ORIGINALCOMMANDS
+
+def ListToString(l):
+    strout = ""
+    for ob in l:
+        strout += ob
+        if l.index(ob) < len(l)-1:
+            strout += "\n"
+
+    return strout
 
 try:
     if os.path.isdir("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault") == False:
@@ -176,12 +185,13 @@ try:
             if len(vaultData) > 1:
                 for f in vaultData['files']:
                     COMMANDS.append(f.split("\n")[0])
-        
+    
+    # If there are no arguments specified, enter interactive mode
     if len(sys.argv) <= 1:
         print(Fore.YELLOW + startScreenLogo + Style.RESET_ALL)
         print(Fore.BLACK + Back.GREEN + "Files in Vault: " + Style.RESET_ALL)
         for f in vaultData['files']:
-            print("     " + f.split("\n")[0])
+            print("   -  " + f.split("\n")[0])
             
         while True:
             refreshCommands()
@@ -193,7 +203,7 @@ try:
             readline.set_completer_delims(' \t\n;')
             readline.parse_and_bind("tab: complete")
             readline.set_completer(comp.complete)
-            inputArgs = input("Vault >  ").split()
+            inputArgs = input("\nVault >  ").split()
             combining = False
             newInputArray = []
             for u, i in enumerate(inputArgs):
@@ -210,6 +220,7 @@ try:
                 
             inputArgs = newInputArray
             
+            # Command to encrypt a file `encrypt <file> (optional: -K (Deletes original file))`
             if inputArgs[0].upper() == "E" or inputArgs[0].upper() == "ENCRYPT":
                 if exists(inputArgs[len(inputArgs) - 1]):
                     fr = open(inputArgs[len(inputArgs) - 1], 'rb')
@@ -234,6 +245,7 @@ try:
                     if inputArgs[1].upper() != "-K":
                         os.remove(inputArgs[len(inputArgs) - 1])
             
+            # Command to decrypt a file that was encrypted by Vault `decrypt <file> (optional: -o <outputname>)`
             elif inputArgs[0].upper() == "D" or inputArgs[0].upper() == "DECRYPT":
                 if exists(inputArgs[len(inputArgs) - 1]):
                     fr = open(inputArgs[len(inputArgs) - 1], 'rb')
@@ -243,22 +255,65 @@ try:
                         
                     decryptedData = decrypt(data, password)
                     
-                    print(decryptedData)
+                    print("\n       " + decryptedData.replace("\n", "\n       ") + "\n")
                     
                     if inputArgs[1].upper() == "-O":
                         fw = open(inputArgs[len(inputArgs) - 1].replace(".ef", ""), 'wb')
                         fw.write(decryptedData)
                         fw.close()
+                    
+            # Command to refresh a password entry `passrefresh <name>`
+            elif inputArgs[0].upper() == "PASSREFRESH":
+                if len(inputArgs) == 2:
+                    if len(inputArgs[1].split("-"))>=2:
+                        if inputArgs[1].split("-")[1] == "=password=":
+                            found = False
+                            for n, f in enumerate(vaultData['files']):
+                                if inputArgs[1] == vaultData['files'][n].split("\n")[0].strip():
+                                    lines = vaultData['files'][n].split("\n")
+                                    lines[2] = lines[4]
+                                    lines[4] = secrets.token_urlsafe(16)
+                                    strval = ListToString(lines)
+                                    vaultData['files'][n] = strval.strip()
+                                    print("\n       " + vaultData['files'][n].replace("\n", "\n       ") + "\n")
+                                    found = True
+                                    break
+                            
+                            if found == False:
+                                print("Invalid =password= file.\nCreate one with command:\npasscreate [entry's name]")
+                                    
+                            fw = open(configData['vault'] + "/vault.vlt", 'wb')
+                            fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
+                            fw.close()
+                        else:
+                            print("Invalid =password= file.\nCreate one with command:\npasscreate [entry's name]")
+                    else:
+                        print("Invalid =password= file.\nCreate one with command:\npasscreate [entry's name]")
+                else:
+                    print("Password Refresh format:\npassrefresh [entry's name]")
+
+            # Command to create a new password entry `passcreate <name>`
+            elif inputArgs[0].upper() == "PASSCREATE":
+                if len(inputArgs) == 2:
+                    vaultData['files'].append(inputArgs[1] + "-=password=\nold-password:\n\ncurrent-password:\n")
+                    fw = open(configData['vault'] + "/vault.vlt", 'wb')
+                    fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
+                    fw.close()
+                else:
+                    print("Password Create format:\npasscreate [entry's name]")
                         
+            # Command to safely exit the vault `exit/quit`
             elif inputArgs[0].upper() == "EXIT" or inputArgs[0].upper() == "QUIT":
                 os.system('cls' if os.name == 'nt' else 'clear')
                 exit()
                 
+            # Command to list all entries `list`
             elif inputArgs[0].upper() == "LIST":
                 print(Fore.BLACK + Back.GREEN + "Files in Vault: " + Style.RESET_ALL)
                 for f in vaultData['files']:
-                    print("     " + f.split("\n")[0])
+                    print("   -  " + f.split("\n")[0])
                     
+            # Command to create a new entry `new/create <name> "<content (in quotes)>"`
             elif inputArgs[0].upper() == "NEW" or inputArgs[0].upper() == "CREATE":
                 if len(inputArgs) >= 3:
                     vaultData['files'].append(inputArgs[1] + "\n" + inputArgs[2].replace("\\n", chr(10)))
@@ -272,10 +327,11 @@ try:
                     
                     print(Fore.BLACK + Back.GREEN + "Files in Vault: " + Style.RESET_ALL)
                     for f in vaultData['files']:
-                        print("     " + f.split("\n")[0])
+                        print("   -  " + f.split("\n")[0])
                 else:
                     print("New entry format:\nnew [entry's name] \"[content (in quotes)]\"")
                     
+            # Command to append text to an entry `append <name> <content>`
             elif inputArgs[0].upper() == "APPEND":
                 if len(inputArgs) >= 3:
                     for n, f in enumerate(vaultData['files']):
@@ -289,7 +345,8 @@ try:
                     fw.close()
                 else:
                     print("Append format:\nappend [entry's name] [content]")
-                    
+            
+            # Command to remove an entry `remove <name>`
             elif inputArgs[0].upper() == "REMOVE":
                 if len(inputArgs) >= 2:
                     for f in vaultData['files']:
@@ -306,17 +363,18 @@ try:
                             
                             print(Fore.BLACK + Back.GREEN + "Files in Vault: " + Style.RESET_ALL)
                             for f in vaultData['files']:
-                                print("     " + f.split("\n")[0])
+                                print("   -  " + f.split("\n")[0])
                                 
                             break
                 else:
                     print("Remove entry format:\nremove [entry's name]")
                 
-                        
+            # If not a command, check if the user is trying to view a file
             else:
                 occurrences = 0
                 for f in vaultData['files']:
                     if inputArgs[0] == f.split("\n")[0].strip():
+                        # If the file is found more than once, then delete the other version
                         if occurrences >= 1:
                             vaultData['files'].remove(f)
                             fw = open(configData['vault'] + "/vault.vlt", 'wb')
@@ -325,8 +383,12 @@ try:
                         else:
                             print("\n       " + f.replace("\n", "\n       ") + "\n")
                         occurrences += 1
+                # No file was found either, print unknown command
+                if occurrences == 0:
+                    print("Unknown command: " + inputArgs[0] + "\n")
     
-    if len(sys.argv) > 1:
+    # If there are arguments specified execute that argument and exit
+    elif len(sys.argv) > 1:
         if sys.argv[1].upper() == "ADD":
             if exists(sys.argv[len(sys.argv)-1]):
                 fr = open(sys.argv[len(sys.argv) - 1], 'r')
@@ -376,7 +438,9 @@ try:
                     
                 if sys.argv[2].upper() != "-K":
                     os.remove(sys.argv[len(sys.argv) - 1])
-                    
+
+
+# Clear screen so no data is left in the terminal on exit
 except KeyboardInterrupt:
     print("\nExiting...")
     os.system('cls' if os.name == 'nt' else 'clear')
