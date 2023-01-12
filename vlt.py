@@ -92,33 +92,35 @@ class Completer(object):
         results = [c + ' ' for c in COMMANDS if c.startswith(cmd)] + [None]
         return results[state]
 
+# Function to AES encrypt and compress data with a password
 def encrypt(data, password):
     key = PBKDF2(password, salt, dkLen=32) # Your key that you can encrypt with
     cipher = AES.new(key, AES.MODE_CFB) # CFB mode
     ciphered_data = cipher.encrypt(data) # Only need to encrypt the data, no padding required for this mode
     
-    # Create the Python dictionary with the required data
-    output_json = {
-        'ciphertext': b64encode(ciphered_data).decode('utf-8'),
-        'iv': b64encode(cipher.iv).decode('utf-8')
-    }
+    # # Create the Python dictionary with the required data
+    # output_json = {
+    #     'ciphertext': b64encode(ciphered_data).decode('utf-8'),
+    #     'iv': b64encode(cipher.iv).decode('utf-8')
+    # }
     
-    # Encode dictionary to a JSON string
+    # Compress ciphered data with zlib
     compressed_data = zlib.compress(cipher.iv + ciphered_data)
     
     return compressed_data
  
- 
+# Function to decompress and AES decrypt ciphered data with a password
 def decrypt(enc, password):
+    # Decompress ciphered data with zlib
     decompressed_data = zlib.decompress(enc)
     # Now to get all the data for decryption:
     
-    key = PBKDF2(password, salt, dkLen=32) # Your key that you can encrypt with
-    iv = decompressed_data[0:16]
-    ciphered_data = decompressed_data[16:len(decompressed_data)]
+    key = PBKDF2(password, salt, dkLen=32) # Your key that you can decrypt with
+    iv = decompressed_data[0:16] # read iv from beginning of decompressed data bytes
+    ciphered_data = decompressed_data[16:len(decompressed_data)] # separate encrypted data from iv
     
     cipher = AES.new(key, AES.MODE_CFB, iv)
-    original_data = cipher.decrypt(ciphered_data) # No need to un-pad
+    original_data = cipher.decrypt(ciphered_data) # Decrypt ciphered data
     return original_data
     
 def refreshCommands():
@@ -188,6 +190,7 @@ try:
     
     # If there are no arguments specified, enter interactive mode
     if len(sys.argv) <= 1:
+        # Print logo and list files in vault
         print(Fore.YELLOW + startScreenLogo + Style.RESET_ALL)
         print(Fore.BLACK + Back.GREEN + "Files in Vault: " + Style.RESET_ALL)
         for f in vaultData['files']:
@@ -199,10 +202,11 @@ try:
                 COMMANDS.append(h.split("\n")[0])
             
             comp = Completer()
-            # we want to treat '/' as part of a word, so override the delimiters
+            # we want to treat '\' as part of a word, so override the delimiters
             readline.set_completer_delims(' \t\n;')
             readline.parse_and_bind("tab: complete")
             readline.set_completer(comp.complete)
+            # Ask user for input and wait for command
             inputArgs = input("\nVault >  ").split()
             combining = False
             newInputArray = []
@@ -220,29 +224,37 @@ try:
                 
             inputArgs = newInputArray
             
-            # Command to encrypt a file `encrypt <file> (optional: -K (Deletes original file))`
+            # Process whatever command the user enters
+
+            # Command to encrypt a file `encrypt <file> (optional: -rm (Deletes original file))`
             if inputArgs[0].upper() == "E" or inputArgs[0].upper() == "ENCRYPT":
                 if exists(inputArgs[len(inputArgs) - 1]):
+                    # Read byte data from file
                     fr = open(inputArgs[len(inputArgs) - 1], 'rb')
                     data = fr.read()
                     fr.close()
+                    # Create and confirm password from user
                     passwordAccepted = False
                     while passwordAccepted == False:
                         password = getpass(Fore.BLACK + Back.WHITE + "Enter new password: " + Style.RESET_ALL)
                         confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
                         if password == "":
-                            print(Fore.RED + "Password is invalid")
+                            print(Fore.RED + "Password is invalid" + Style.RESET_ALL)
                         elif password == confirmedPassword:
                             passwordAccepted = True
                         elif password != confirmedPassword:
-                            print(Fore.RED + "Passwords don't match")
+                            print(Fore.RED + "Passwords don't match" + Style.RESET_ALL)
                         
+                    # Encrypt data and save it to new file with same name but ending with ".ef"
                     encryptedData = encrypt(data, password)
                     fw = open(inputArgs[len(inputArgs) - 1] + ".ef", 'wb')
                     fw.write(data)
                     fw.close()
+
+                    print(Fore.CYAN + "Encrypted file to " + inputArgs[len(inputArgs) - 1] + ".ef" + Style.RESET_ALL)
                     
-                    if inputArgs[1].upper() != "-K":
+                    # Remove the original file if the user specified it with "-rm"
+                    if inputArgs[1].upper() == "-RM":
                         os.remove(inputArgs[len(inputArgs) - 1])
             
             # Command to decrypt a file that was encrypted by Vault `decrypt <file> (optional: -o <outputname>)`
