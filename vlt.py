@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.1.0"
+__version__="1.1.1"
 
 import sys
 import os
@@ -316,7 +316,7 @@ try:
                         print("Directory '%s' can not be created: %s" % (dir, error))
         
         # Prompt user for vault name
-        nam = input("Enter name of vault\n(ex. "MyVault")\n >  ")
+        nam = input("Enter name of vault\n(ex. \"MyVault\")\n >  ")
         if len(nam)>0:
             if nam.endswith(".vlt"):
                 validDirectory += "./"+nam
@@ -572,16 +572,33 @@ try:
             elif inputArgs[0].upper() == "HELP":
                 helpText = """Help Menu:
 
-    encrypt [-rm] <file>  - Encrypts a file, (optional: [-rm] (DELETES original file))
-    decrypt <file> [-o <output file>]  - Decrypt a .EF file (optional: [-o <output file>] specify the output destination for decrypted data)
-    passcreate <name>  - Create password entry in vault, which has the ability to be randomly generated
-    passrefresh <password entry>  - Randomly generates a new password inside the password entry, and keeps the old one just in case you need it to change to the new one.
-    exit/quit  - Safely exit and clear terminal of any viewed data. Ctrl+C also does this.
-    help  - Show this help menu
-    list  - List the name of all the entries present in this vault, like a directory
-    new/create <name> "<content (in quotes)>"  - Command to create a new entry with <name> and <content>. Make sure to use quotes to have multiple words, and use escape \\n to do newline.
-    append <name> "<content (in quotes)>"  - Command to append new data to existing entry
-    remove <name>  - PERMANENTLY delete an entry. This process is 
+    encrypt [-rm] <file>
+        Encrypts a file, (optional: [-rm] (DELETES original file))
+    decrypt <file> [-o <output file>]
+        Decrypt a .EF file (optional: [-o <output file>] specify the
+        output destination for decrypted data)
+    passcreate <name>
+        Create password entry in vault, which has the ability to be
+        randomly generated
+    passrefresh <password entry>
+        Randomly generates a new password inside the password entry,
+        and keeps the old one just in case you need it to change to
+        the new one.
+    exit/quit
+        Safely exit and clear terminal of any viewed data. Ctrl+C
+        also does this.
+    help
+        Show this help menu
+    list
+        List the name of all the entries present in this vault, like
+        a directory
+    new/create <name> "<content (in quotes)>"
+        Command to create a new entry with <name> and <content>. Make
+        sure to use quotes to have multiple words, and use escape \\n to do newline.
+    append <name> "<content (in quotes)>"
+        Command to append new data to existing entry
+    remove <name>
+        PERMANENTLY delete an entry. This process is 
 """
                 print(helpText)
                 
