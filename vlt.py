@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.0.1"
+__version__="1.0.2"
 
 import sys
 import os
@@ -18,8 +18,6 @@ import pwd
 import re
 import readline
 import secrets
-
-update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
 
 buffer_size = 65536 # 64kb
 
@@ -146,7 +144,8 @@ Attempts to download the update url in order to find if an update is needed.
 If an update is needed, the current script is backed up and the update is
 saved in its place.
 """
-    import urllib
+    # import urllib
+    import urllib.request
     import re
     from subprocess import call
     def compare_versions(vA, vB):
@@ -163,29 +162,23 @@ Compares two version number strings
             if s.isdigit(): return int(s)
             return s
 
-        seqA = map(num, re.findall('\d+|\w+', vA.replace('-SNAPSHOT', '')))
-        seqB = map(num, re.findall('\d+|\w+', vB.replace('-SNAPSHOT', '')))
+        splitVA = vA.split(".")
+        splitVB = vB.split(".")
 
-        # this is to ensure that 1.0 == 1.0.0 in cmp(..)
-        lenA, lenB = len(seqA), len(seqB)
-        for i in range(lenA, lenB): seqA += (0,)
-        for i in range(lenB, lenA): seqB += (0,)
+        vaNum = (num(splitVA[0])*100)+(num(splitVA[1])*10)+(num(splitVA[2]))
+        vbNum = (num(splitVB[0])*100)+(num(splitVB[1])*10)+(num(splitVB[2]))
 
-        rc = cmp(seqA, seqB)
-
-        if rc == 0:
-            if vA.endswith('-SNAPSHOT'): return -1
-            if vB.endswith('-SNAPSHOT'): return 1
-        return rc
+        if vaNum<vbNum: return -1
+        if vaNum>vbNum: return 1
 
     # dl the first 256 bytes and parse it for version number
     try:
-        http_stream = urllib.urlopen(dl_url)
-        update_file = http_stream.read(256)
+        http_stream = urllib.request.urlopen(dl_url)
+        update_file = str(http_stream.read(256))
         http_stream.close()
-    except (errno, strerror):
-        print("Unable to retrieve version data")
-        print("Error %s: %s" % (errno, strerror))
+    except (Exception) as e:
+        print("Unable to retrieve version data: " + str(e))
+        # print("Error %s: %s" % (errno, strerror))
         return
 
     match_regex = re.search(r'__version__ *= *"(\S+)"', update_file)
@@ -203,14 +196,26 @@ Compares two version number strings
             % update_version)
     else:
         cmp_result = compare_versions(__version__, update_version)
+
+        # Prompt user if they want to update if it is available
         if cmp_result < 0:
-            print("Newer version %s available, downloading..." % update_version)
+            print("Newer version %s available, do you want to update?" % update_version)
+            while True:
+                ans = input("Y/n: ")
+                if ans.upper() == "Y":
+                    break
+                elif ans.upper() == "N":
+                    print("Skipping update...")
+                    return
+
+        if cmp_result < 0:
+            print("Downloading version %s..." % update_version)
         elif cmp_result > 0:
-            print("Local version %s newer then available %s, not updating." \
-                % (__version__, update_version))
+            # print("Local version %s newer then available %s, not updating." \
+            #     % (__version__, update_version))
             return
         else:
-            print("You already have the latest version.")
+            # print("You already have the latest version.")
             return
 
     # dl, backup, and save the updated script
@@ -221,9 +226,10 @@ Compares two version number strings
 
     dl_path = app_path + ".new"
     backup_path = app_path + ".old"
+    
     try:
-        dl_file = open(dl_path, 'w')
-        http_stream = urllib.urlopen(dl_url)
+        dl_file = open(dl_path, 'wb')
+        http_stream = urllib.request.urlopen(dl_url)
         total_size = None
         bytes_so_far = 0
         chunk_size = 8192
@@ -251,34 +257,37 @@ Compares two version number strings
 
         http_stream.close()
         dl_file.close()
-    except (errno, strerror):
-        print("Download failed")
-        print("Error %s: %s" % (errno, strerror))
+    except (Exception) as e:
+        print("Download failed: " + str(e))
+        # print("Error %s: %s" % (errno, strerror))
         return
 
     try:
         os.rename(app_path, backup_path)
-    except (errno, strerror):
-        print("Unable to rename %s to %s: (%d) %s" \
-            % (app_path, backup_path, errno, strerror))
+    except:
+        print("Unable to rename %s to %s" \
+            % (app_path, backup_path))
         return
 
     try:
         os.rename(dl_path, app_path)
-    except (errno, strerror):
-        print("Unable to rename %s to %s: (%d) %s" \
-            % (dl_path, app_path, errno, strerror))
+    except:
+        print("Unable to rename %s to %s" \
+            % (dl_path, app_path))
         return
 
     try:
         import shutil
         shutil.copymode(backup_path, app_path)
     except:
-        os.chmod(app_path, 0755)
+        os.chmod(app_path, 755)
 
     print("New version installed as %s" % app_path)
     print("(previous version backed up to %s)" % (backup_path))
     return
+
+# Check for update
+update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
 
 try:
     if os.path.isdir("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault") == False:
