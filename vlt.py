@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.0.2"
+__version__="1.1.0"
 
 import sys
 import os
@@ -38,6 +38,7 @@ RE_SPACE = re.compile('.*\s+$', re.M)
 
 startScreenLogo = "\n██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗\n██║   ██║██╔══██╗██║   ██║██║  ╚══██╔══╝\n╚██╗ ██╔╝██╔══██║██║   ██║██║     ██║   \n ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║   \n  ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝   \n                                        "
 
+# Class to auto-complete the user's input
 class Completer(object):
 
     def _listdir(self, root):
@@ -138,6 +139,8 @@ def ListToString(l):
 
     return strout
 
+# Function to get the current version of this script from the server, and prompt
+# to update if a newer one is available.
 def update(dl_url, force_update=False):
     """
 Attempts to download the update url in order to find if an update is needed.
@@ -282,53 +285,83 @@ Compares two version number strings
     except:
         os.chmod(app_path, 755)
 
-    print("New version installed as %s" % app_path)
-    print("(previous version backed up to %s)" % (backup_path))
+    print(Fore.GREEN + "New version installed as %s" % app_path)
+    print(Fore.GREEN+"(previous version backed up to %s)" % (backup_path))
     return
 
 # Check for update
 update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
 
 try:
+    # Make sure config folder exists
     if os.path.isdir("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault") == False:
         os.mkdir("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault")
+    # Make sure config file exists, if it doesn't then enter setup
     if exists("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf") == False:
+        # Prompt user for vault directory
         validDirectory = ""
         while validDirectory == "":
-            dir = input("First time setup, enter directory of new or existing vault file\n >  ")
+            dir = input("Enter directory of new or existing vault\n(ex. "/home/vault/")\n >  ")
             if os.path.isdir(dir):
                 validDirectory = dir
             else:
                 print(Fore.RED + "Not a valid directory")
+                mke = input("This directory does not exist. Create it?\nY/n >  ")
+                if mke.upper() == "Y":
+                    try:
+                        os.mkdirs(dir)
+                        if os.path.isdir(dir):
+                            validDirectory = dir
+                    except OSError as error:
+                        print("Directory '%s' can not be created: %s" % (dir, error))
+        
+        # Prompt user for vault name
+        nam = input("Enter name of vault\n(ex. "MyVault")\n >  ")
+        if len(nam)>0:
+            if nam.endswith(".vlt"):
+                validDirectory += "./"+nam
+            else:
+                validDirectory += "./"+nam+".vlt"
+        else:
+            validDirectory += "./MyVault.vlt"
         
         data = {'vault' : validDirectory}
         with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
             json.dump(data, outfile)
             
     with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf") as json_file:
+        # Load config file data
         configData = json.load(json_file)
-        if exists(configData['vault'] + "/vault.vlt") == False:
-            passwordAccepted = False
-            while passwordAccepted == False:
-                password = getpass(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
-                confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
-                if password == "":
-                    print(Fore.RED + "Password is invalid")
-                elif password == confirmedPassword:
-                    passwordAccepted = True
-                elif password != confirmedPassword:
-                    print(Fore.RED + "Passwords don't match")
+        # If the vault file specified in the config is invalid, ask to create new one
+        if exists(configData['vault']) == False:
+            print("Vault file at '%s' could not be found. Create new one?" % configData['vault'])
+            cnoA = input("Y/n >  ")
+            if cnoA.upper() == "Y":
+                passwordAccepted = False
+                while passwordAccepted == False:
+                    password = getpass(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
+                    confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
+                    if password == "":
+                        print(Fore.RED + "Password is invalid")
+                    elif password == confirmedPassword:
+                        passwordAccepted = True
+                    elif password != confirmedPassword:
+                        print(Fore.RED + "Passwords don't match")
                     
-            dataIn = {}
-            dataIn['files'] = []
-            fw = open(configData['vault'] + "/vault.vlt", 'wb')
-            fw.write(encrypt(bytes(json.dumps(dataIn), "utf-8"), password))
-            fw.close()
-            vaultPassword = password
+                dataIn = {}
+                dataIn['files'] = []
+                fw = open(configData['vault'], 'wb')
+                fw.write(encrypt(bytes(json.dumps(dataIn), "utf-8"), password))
+                fw.close()
+                vaultPassword = password
+                
+            else:
+                exit()
+        # Otherwise ask for password and decrypt it
         else:
             while True:
                 password = getpass(Fore.BLACK + Back.WHITE + "Enter password: " + Style.RESET_ALL)
-                fr = open(configData['vault'] + "/vault.vlt", 'rb')
+                fr = open(configData['vault'], 'rb')
                 data = decrypt(fr.read(), password)
                 fr.close()
                 try:
@@ -413,8 +446,8 @@ try:
             
             # Command to decrypt a file that was encrypted by Vault `decrypt <file> (optional: -o <outputname>)`
             elif inputArgs[0].upper() == "D" or inputArgs[0].upper() == "DECRYPT":
-                if exists(inputArgs[len(inputArgs) - 1]):
-                    fr = open(inputArgs[len(inputArgs) - 1], 'rb')
+                if exists(inputArgs[1]):
+                    fr = open(inputArgs[1], 'rb')
                     data = fr.read()
                     fr.close()
                     password = getpass(Fore.BLACK + Back.WHITE + "Enter password: " + Style.RESET_ALL)
@@ -423,7 +456,7 @@ try:
                     
                     print("\n       " + decryptedData.replace("\n", "\n       ") + "\n")
                     
-                    if inputArgs[1].upper() == "-O":
+                    if inputArgs[len(inputArgs) - 2].upper() == "-O":
                         fw = open(inputArgs[len(inputArgs) - 1].replace(".ef", ""), 'wb')
                         fw.write(decryptedData)
                         fw.close()
@@ -448,7 +481,7 @@ try:
                             if found == False:
                                 print("Invalid =password= file.\nCreate one with command:\npasscreate [entry's name]")
                                     
-                            fw = open(configData['vault'] + "/vault.vlt", 'wb')
+                            fw = open(configData['vault'], 'wb')
                             fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
                             fw.close()
                         else:
@@ -456,17 +489,17 @@ try:
                     else:
                         print("Invalid =password= file.\nCreate one with command:\npasscreate [entry's name]")
                 else:
-                    print("Password Refresh format:\npassrefresh [entry's name]")
+                    print("Password Refresh format:\npassrefresh <entry's name>")
 
             # Command to create a new password entry `passcreate <name>`
             elif inputArgs[0].upper() == "PASSCREATE":
                 if len(inputArgs) == 2:
                     vaultData['files'].append(inputArgs[1] + "-=password=\nold-password:\n\ncurrent-password:\n")
-                    fw = open(configData['vault'] + "/vault.vlt", 'wb')
+                    fw = open(configData['vault'], 'wb')
                     fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
                     fw.close()
                 else:
-                    print("Password Create format:\npasscreate [entry's name]")
+                    print("Password Create format:\npasscreate <entry's name>")
                         
             # Command to safely exit the vault `exit/quit`
             elif inputArgs[0].upper() == "EXIT" or inputArgs[0].upper() == "QUIT":
@@ -483,7 +516,7 @@ try:
             elif inputArgs[0].upper() == "NEW" or inputArgs[0].upper() == "CREATE":
                 if len(inputArgs) >= 3:
                     vaultData['files'].append(inputArgs[1] + "\n" + inputArgs[2].replace("\\n", chr(10)))
-                    fw = open(configData['vault'] + "/vault.vlt", 'wb')
+                    fw = open(configData['vault'], 'wb')
                     fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
                     fw.close()
                     
@@ -495,7 +528,7 @@ try:
                     for f in vaultData['files']:
                         print("   -  " + f.split("\n")[0])
                 else:
-                    print("New entry format:\nnew [entry's name] \"[content (in quotes)]\"")
+                    print("New entry format:\nnew <entry's name> \"<content (in quotes)>\"")
                     
             # Command to append text to an entry `append <name> <content>`
             elif inputArgs[0].upper() == "APPEND":
@@ -506,11 +539,11 @@ try:
                             print(vaultData['files'][n])
                             break
                             
-                    fw = open(configData['vault'] + "/vault.vlt", 'wb')
+                    fw = open(configData['vault'], 'wb')
                     fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
                     fw.close()
                 else:
-                    print("Append format:\nappend [entry's name] [content]")
+                    print("Append format:\nappend <entry's name> \"<content (in quotes)>\"")
             
             # Command to remove an entry `remove <name>`
             elif inputArgs[0].upper() == "REMOVE":
@@ -519,7 +552,7 @@ try:
                         if inputArgs[1] == f.split("\n")[0].strip():
                             vaultData['files'].remove(f)
                             
-                            fw = open(configData['vault'] + "/vault.vlt", 'wb')
+                            fw = open(configData['vault'], 'wb')
                             fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
                             fw.close()
                     
@@ -533,7 +566,24 @@ try:
                                 
                             break
                 else:
-                    print("Remove entry format:\nremove [entry's name]")
+                    print("Remove entry format:\nremove <entry's name>")
+                
+            # Command to print the help menu `help`
+            elif inputArgs[0].upper() == "HELP":
+                helpText = """Help Menu:
+
+    encrypt [-rm] <file>  - Encrypts a file, (optional: [-rm] (DELETES original file))
+    decrypt <file> [-o <output file>]  - Decrypt a .EF file (optional: [-o <output file>] specify the output destination for decrypted data)
+    passcreate <name>  - Create password entry in vault, which has the ability to be randomly generated
+    passrefresh <password entry>  - Randomly generates a new password inside the password entry, and keeps the old one just in case you need it to change to the new one.
+    exit/quit  - Safely exit and clear terminal of any viewed data. Ctrl+C also does this.
+    help  - Show this help menu
+    list  - List the name of all the entries present in this vault, like a directory
+    new/create <name> "<content (in quotes)>"  - Command to create a new entry with <name> and <content>. Make sure to use quotes to have multiple words, and use escape \\n to do newline.
+    append <name> "<content (in quotes)>"  - Command to append new data to existing entry
+    remove <name>  - PERMANENTLY delete an entry. This process is 
+"""
+                print(helpText)
                 
             # If not a command, check if the user is trying to view a file
             else:
@@ -543,7 +593,7 @@ try:
                         # If the file is found more than once, then delete the other version
                         if occurrences >= 1:
                             vaultData['files'].remove(f)
-                            fw = open(configData['vault'] + "/vault.vlt", 'wb')
+                            fw = open(configData['vault'], 'wb')
                             fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
                             fw.close()
                         else:
@@ -561,7 +611,7 @@ try:
                 data = fr.read()
                 fr.close()
                 vaultData['files'].append(sys.argv[len(sys.argv)-1].replace(" ", "_") + "\n" + data)
-                fw = open(configData['vault'] + "/vault.vlt", 'wb')
+                fw = open(configData['vault'], 'wb')
                 fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
                 fw.close()
                 
@@ -594,7 +644,7 @@ try:
                     if occurred == False:
                         vaultData['files'].append(f)
                     
-                fw = open(configData['vault'] + "/vault.vlt", 'wb')
+                fw = open(configData['vault'], 'wb')
                 fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
                 fw.close()
                 
