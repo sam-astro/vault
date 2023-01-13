@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.1.1"
+__version__="1.1.2"
 
 import sys
 import os
@@ -37,6 +37,9 @@ COMMANDS = ORIGINALCOMMANDS
 RE_SPACE = re.compile('.*\s+$', re.M)
 
 startScreenLogo = "\n██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗\n██║   ██║██╔══██╗██║   ██║██║  ╚══██╔══╝\n╚██╗ ██╔╝██╔══██║██║   ██║██║     ██║   \n ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║   \n  ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝   \n                                        "
+
+print("Vault version v" + __version__)
+
 
 # Class to auto-complete the user's input
 class Completer(object):
@@ -287,6 +290,11 @@ Compares two version number strings
 
     print(Fore.GREEN + "New version installed as %s" % app_path)
     print(Fore.GREEN+"(previous version backed up to %s)" % (backup_path))
+
+    # Restart script so newer update is the current process
+    print(Fore.GREEN + "Restarting with newer update...")
+    os.execl(sys.executable, *([sys.executable]+sys.argv))
+
     return
 
 # Check for update
