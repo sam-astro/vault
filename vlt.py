@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.2.1"
+__version__="1.2.2"
 
 import sys
 import os
@@ -643,6 +643,7 @@ try:
             elif inputArgs[0].upper() == "NEWVAULT":
                 
                 # Prompt user for vault name
+                newValDir = ""
                 nam = ""
                 while len(nam) <= 0:
                     nam = input("Enter name of new vault\n(ex. \"MyVault\")\n >  ")
@@ -669,7 +670,7 @@ try:
                             except OSError as error:
                                 print("Directory '%s' can not be created: %s" % (dir, error))
                                 
-                vaultFiles.append(validDirectory+"./"+newValDir)
+                vaultFiles.append(validDirectory+newValDir)
                 # Save path of vault to config file
                 data = {'vaults' : vaultFiles}
                 with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
@@ -689,7 +690,7 @@ try:
                     
                 dataIn = {}
                 dataIn['files'] = []
-                fw = open(validDirectory+"./"+newValDir, 'wb')
+                fw = open(validDirectory+newValDir, 'wb')
                 fw.write(encrypt(bytes(json.dumps(dataIn), "utf-8"), password))
                 fw.close()
                 
