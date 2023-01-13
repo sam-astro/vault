@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.2.0"
+__version__="1.2.1"
 
 import sys
 import os
@@ -623,7 +623,7 @@ try:
                     print("Remove entry format:\nremove <entry's name>")
             
             # Command to print all contained data `printeverything`
-            elif inputArgs[0].upper() == "PRINTEVERYTING":
+            elif inputArgs[0].upper() == "PRINTEVERYTHING":
                 mke = input(Fore.YELLOW+"Are you sure? This will print the contents of ALL entries to the terminal."+Style.RESET_ALL+"\nY/n >  ")
                 if mke.upper() == "Y":
                     while True:
@@ -641,18 +641,57 @@ try:
             
             # Command to create a new, empty vault `newvault`
             elif inputArgs[0].upper() == "NEWVAULT":
-                while True:
-                    passw = getpass(Fore.BLACK + Back.WHITE + "Enter password to continue: " + Style.RESET_ALL)
-                    fr = open(configData['vaults'][currentVault], 'rb')
-                    dat = decrypt(fr.read(), password)
-                    fr.close()
-                    try:
-                        jsdat = json.loads(dat)
-                        print(json.dumps(jsdat))
-                        break
-                    except:
-                        print(Fore.RED + "Incorrect Password" + Fore.WHITE)
-                        continue
+                
+                # Prompt user for vault name
+                nam = ""
+                while len(nam) <= 0:
+                    nam = input("Enter name of new vault\n(ex. \"MyVault\")\n >  ")
+                    if len(nam)>0:
+                        if nam.endswith(".vlt"):
+                            newValDir += "./"+nam
+                        else:
+                            newValDir += "./"+nam+".vlt"
+                    
+                # Prompt user for vault directory
+                validDirectory = ""
+                while validDirectory == "":
+                    dir = input("Enter directory to store new vault\n(ex. "/home/vault/")\n >  ")
+                    if os.path.isdir(dir):
+                        validDirectory = dir
+                    else:
+                        print(Fore.RED + "Not a valid directory")
+                        mke = input("This directory does not exist. Create it?\nY/n >  ")
+                        if mke.upper() == "Y":
+                            try:
+                                os.mkdirs(dir)
+                                if os.path.isdir(dir):
+                                    validDirectory = dir
+                            except OSError as error:
+                                print("Directory '%s' can not be created: %s" % (dir, error))
+                                
+                vaultFiles.append(validDirectory+"./"+newValDir)
+                # Save path of vault to config file
+                data = {'vaults' : vaultFiles}
+                with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
+                    json.dump(data, outfile)
+                    
+                # Prompt user for new password
+                passwordAccepted = False
+                while passwordAccepted == False:
+                    password = getpass(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
+                    confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
+                    if password == "":
+                        print(Fore.RED + "Password is invalid")
+                    elif password == confirmedPassword:
+                        passwordAccepted = True
+                    elif password != confirmedPassword:
+                        print(Fore.RED + "Passwords don't match")
+                    
+                dataIn = {}
+                dataIn['files'] = []
+                fw = open(validDirectory+"./"+newValDir, 'wb')
+                fw.write(encrypt(bytes(json.dumps(dataIn), "utf-8"), password))
+                fw.close()
                 
             # Command to print the help menu `help`
             elif inputArgs[0].upper() == "HELP":
@@ -690,6 +729,8 @@ try:
         Print the entire vault json data to the terminal. !! (This
         process shows all of the unencrypted entries, and is only
         recommended for debugging)
+    newvault
+        Start the process of creating a new, separate vault
 """
                 print(helpText)
                 
