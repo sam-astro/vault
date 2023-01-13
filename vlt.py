@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.2.2"
+__version__="1.3.0"
 
 import sys
 import os
@@ -31,6 +31,7 @@ vaultData = []
 configData = []
 
 currentVault = 0
+vaultName = ""
 
 
 
@@ -228,7 +229,7 @@ Compares two version number strings
             #     % (__version__, update_version))
             return
         else:
-            # print("You already have the latest version.")
+            print("You have the latest version of Vault.")
             return
 
     # dl, backup, and save the updated script
@@ -316,11 +317,11 @@ try:
         # Prompt user for vault directory
         validDirectory = ""
         while validDirectory == "":
-            dir = input("Enter directory to store existing or new vaults\n(ex. "/home/vault/")\n >  ")
+            dir = input("Enter directory to store existing or new vaults\n(ex. \"/home/vault/\")\n >  ")
             if os.path.isdir(dir):
                 validDirectory = dir
             else:
-                print(Fore.RED + "Not a valid directory")
+                print(Fore.RED + "Not a valid directory"+Style.RESET_ALL)
                 mke = input("This directory does not exist. Create it?\nY/n >  ")
                 if mke.upper() == "Y":
                     try:
@@ -333,7 +334,7 @@ try:
         # Check if any vaults are present in the directory
         vaultFiles = []
         for filename in os.listdir(validDirectory):
-            if file.endswith(".vlt"):
+            if filename.endswith(".vlt"):
                 vaultFiles.append(os.path.join(validDirectory, filename))
         
         # If there are no existing vaults, create one
@@ -358,9 +359,10 @@ try:
         configData = json.load(json_file)
         
         # List all known vaults, and ask which one the user wants to load
+        print("\nKnown vaults:")
         for i, vaultDir in enumerate(configData['vaults']):
             if exists(configData['vaults'][i]):
-                print(Fore.BLACK + Back.GREEN +"\t" + str(i) + ". " + os.path.basename(vaultDir) + Style.RESET_ALL)
+                print(Fore.BLACK + Back.GREEN +"\t" + str(i) + "." + Back.RESET+Fore.GREEN+" " + os.path.basename(vaultDir) + Style.RESET_ALL)
             else:
                 print(Fore.YELLOW + Back.RED +"\t" + str(i) + ". " + os.path.basename(vaultDir) + Style.RESET_ALL + "  not found")
         
@@ -402,6 +404,7 @@ try:
                 fw.write(encrypt(bytes(json.dumps(dataIn), "utf-8"), password))
                 fw.close()
                 vaultPassword = password
+                vaultName = os.path.basename(configData['vaults'][currentVault])
                 
             else:
                 exit()
@@ -419,6 +422,7 @@ try:
                     print(Fore.RED + "Incorrect Password" + Fore.WHITE)
                     continue
             vaultPassword = password
+            vaultName = os.path.basename(configData['vaults'][currentVault])
             if len(vaultData) > 1:
                 for f in vaultData['files']:
                     COMMANDS.append(f.split("\n")[0])
@@ -442,7 +446,7 @@ try:
             readline.parse_and_bind("tab: complete")
             readline.set_completer(comp.complete)
             # Ask user for input and wait for command
-            inputArgs = input("\nVault >  ").split()
+            inputArgs = input("Vault ("+Fore.GREEN+vaultName+Style.RESET_ALL+") >  ").split()
             combining = False
             newInputArray = []
             for u, i in enumerate(inputArgs):
@@ -458,6 +462,12 @@ try:
                     newInputArray.append(inputArgs[u].replace("\"", ""))
                 
             inputArgs = newInputArray
+
+            # If there is no input then just prompt again
+            if len(inputArgs) <= 0:
+                continue
+            
+            print("")
             
             # Process whatever command the user enters
 
@@ -633,7 +643,7 @@ try:
                         fr.close()
                         try:
                             jsdat = json.loads(dat)
-                            print(json.dumps(jsdat))
+                            print(json.dumps(jsdat, indent=2).replace("\\n", "\n"))
                             break
                         except:
                             print(Fore.RED + "Incorrect Password" + Fore.WHITE)
@@ -656,11 +666,13 @@ try:
                 # Prompt user for vault directory
                 validDirectory = ""
                 while validDirectory == "":
-                    dir = input("Enter directory to store new vault\n(ex. "/home/vault/")\n >  ")
+                    dir = input("Enter directory to store new vault\n(ex. \"/home/vault/\")\n >  ")
                     if os.path.isdir(dir):
+                        if not (dir.endswith("/") and dir.endswith("\\")):
+                            dir += "/"
                         validDirectory = dir
                     else:
-                        print(Fore.RED + "Not a valid directory")
+                        print(Fore.RED + "Not a valid directory"+Style.RESET_ALL)
                         mke = input("This directory does not exist. Create it?\nY/n >  ")
                         if mke.upper() == "Y":
                             try:
@@ -670,9 +682,9 @@ try:
                             except OSError as error:
                                 print("Directory '%s' can not be created: %s" % (dir, error))
                                 
-                vaultFiles.append(validDirectory+newValDir)
+                configData['vaults'].append(validDirectory+newValDir)
                 # Save path of vault to config file
-                data = {'vaults' : vaultFiles}
+                data = {'vaults' : configData['vaults']}
                 with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
                     json.dump(data, outfile)
                     
