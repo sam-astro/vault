@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.4.4"
+__version__="1.4.5"
 
 import sys
 import os
@@ -354,9 +354,9 @@ class Editor:
         status = "\x1b[7m"
         status += self.filename + " - " + str(self.total_lines) + " lines"
         status += " modified" if self.modified else " saved"
-        status += "     Ctrl+S to Save     Ctrl+Q to Quit without saving         "
+        status += "     Ctrl+S | Save     Ctrl+Q | Quit         "
         status += "\x1b[0m"
-        status += Fore.WHITE + Back.RED + "Not saved"+Style.RESET_ALL if self.modified else Fore.WHITE + Back.GREEN + "Saved"+Style.RESET_ALL
+        status += Fore.WHITE + Back.RED + "Not saved"+Style.RESET_ALL if self.modified else Fore.BLACK + Back.GREEN + "Saved"+Style.RESET_ALL
         status += "\x1b[7m"
         pos = "Row " + str(self.cury + 1) + ", Col " + str(self.curx + 1)
         while len(status)-22 < self.COLS - len(pos) + 3:
