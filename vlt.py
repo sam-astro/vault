@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.4.3"
+__version__="1.4.4"
 
 import sys
 import os
@@ -776,7 +776,7 @@ try:
             if os.path.isdir(dir):
                 if not (dir.endswith("/") and dir.endswith("\\")):
                     dir += "/"
-                validDirectory = dir
+                validDirectory = os.path.abspath(dir)
             else:
                 print(Fore.RED + "Not a valid directory"+Style.RESET_ALL)
                 mke = input("\nThis directory does not exist. Create it?\nY/n >  ")
@@ -784,7 +784,7 @@ try:
                     try:
                         os.mkdirs(dir)
                         if os.path.isdir(dir):
-                            validDirectory = dir
+                            validDirectory = os.path.abspath(dir)
                     except OSError as error:
                         print("Directory '%s' can not be created: %s" % (dir, error))
         
