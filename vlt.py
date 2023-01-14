@@ -669,7 +669,7 @@ Compares two version number strings
 
         # Prompt user if they want to update if it is available
         if cmp_result < 0:
-            print("Newer version %s available, do you want to update?" % update_version)
+            print("Newer version v%s available, do you want to update?" % update_version)
             while True:
                 ans = input("Y/n: ")
                 if ans.upper() == "Y":
