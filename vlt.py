@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.4.0"
+__version__="1.4.1"
 
 import sys
 import os
@@ -755,7 +755,8 @@ Compares two version number strings
     print(Fore.GREEN+"(previous version backed up to %s)" % (backup_path))
 
     # Restart script so newer update is the current process
-    print(Fore.GREEN + "Restarting with newer update..."+Style.RESET_ALL)
+    print(Fore.GREEN + "Restarting with newer update..." + Style.RESET_ALL)
+    print()
     os.execl(sys.executable, *([sys.executable]+sys.argv))
 
 # Check for update
