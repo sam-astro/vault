@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.4.1"
+__version__="1.4.2"
 
 import sys
 import os
@@ -771,12 +771,14 @@ try:
         # Prompt user for vault directory
         validDirectory = ""
         while validDirectory == "":
-            dir = input("Enter directory to store existing or new vaults\n(ex. \"/home/vault/\")\n >  ")
+            dir = input("\nEnter directory to store existing or new vaults\n(ex. \"/home/vault/\")\n >  ")
             if os.path.isdir(dir):
+                if not (dir.endswith("/") and dir.endswith("\\")):
+                    dir += "/"
                 validDirectory = dir
             else:
                 print(Fore.RED + "Not a valid directory"+Style.RESET_ALL)
-                mke = input("This directory does not exist. Create it?\nY/n >  ")
+                mke = input("\nThis directory does not exist. Create it?\nY/n >  ")
                 if mke.upper() == "Y":
                     try:
                         os.mkdirs(dir)
@@ -794,7 +796,7 @@ try:
         # If there are no existing vaults, create one
         if len(vaultFiles) == 0:
             # Prompt user for vault name
-            nam = input("Enter name of new vault\n(ex. \"MyVault\")\n >  ")
+            nam = input("\nEnter name of new vault\n(ex. \"MyVault\")\n >  ")
             if len(nam)>0:
                 if nam.endswith(".vlt"):
                     validDirectory += "./"+nam
@@ -802,7 +804,26 @@ try:
                     validDirectory += "./"+nam+".vlt"
             else:
                 validDirectory += "./MyVault.vlt"
-            vaultFiles.append(validDirectory)
+            vaultFiles.append(os.path.abspath(validDirectory))
+            # Create vault file
+            passwordAccepted = False
+            while passwordAccepted == False:
+                password = getpass(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
+                confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
+                if password == "":
+                    print(Fore.RED + "Password is invalid")
+                elif password == confirmedPassword:
+                    passwordAccepted = True
+                elif password != confirmedPassword:
+                    print(Fore.RED + "Passwords don't match")
+                
+            dataIn = {}
+            dataIn['files'] = []
+            fw = open(os.path.abspath(validDirectory), 'wb')
+            fw.write(encrypt(bytes(json.dumps(dataIn), "utf-8"), password))
+            fw.close()
+            vaultPassword = password
+            vaultName = nam
         
         data = {'vaults' : vaultFiles}
         with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
@@ -1147,14 +1168,14 @@ try:
                 # Prompt user for vault directory
                 validDirectory = ""
                 while validDirectory == "":
-                    dir = input("Enter directory to store new vault\n(ex. \"/home/vault/\")\n >  ")
+                    dir = input("\nEnter directory to store new vault\n(ex. \"/home/vault/\")\n >  ")
                     if os.path.isdir(dir):
                         if not (dir.endswith("/") and dir.endswith("\\")):
                             dir += "/"
                         validDirectory = dir
                     elif len(dir)>0:
                         print(Fore.RED + "Not a valid directory"+Style.RESET_ALL)
-                        mke = input("This directory does not exist. Create it?\nY/n >  ")
+                        mke = input("\nThis directory does not exist. Create it?\nY/n >  ")
                         if mke.upper() == "Y":
                             try:
                                 os.mkdirs(dir)
