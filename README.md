@@ -1,14 +1,24 @@
 # vault
 
 ## How to install:
+1. Download vault:
+```
+git clone https://github.com/sam-astro/vault.git
+cd ./vault
+```
 
-I reccommend adding it to your `~/.bashrc` file so you can access vault from any directory or without knowing it's full path.
-1. Open ~/.bashrc file (or your shell config file) with nano or text editor with admin permissions.
+2. Install requirements:
+```
+pip3 install -r requirements.txt
+```
+
+3. I reccommend adding it to your `~/.bashrc` or `~/.zshrc` file so you can access vault from any directory and without knowing it's full path, like a normal command. Open ~/.bashrc file (or your shell config file) with nano or text editor with admin permissions.
 ```
 sudo nano ~/.bashrc
 ```
-2. Scroll to the very end, and add an alias to the directory `vlt.py` is in. For example, if you downloaded vault to your home directory, the `vlt.py` file would be `~/vault/vlt.py`. So you would add this to the end of the `~/.bashrc` file:
-```
+
+4. Scroll to the very end, and add an alias to the directory `vlt.py` is in. For example, if you downloaded vault to your home directory, the `vlt.py` file would be `~/vault/vlt.py`. So you would add this to the end of the `~/.bashrc` file:
+```bash
 alias vault='python3 ~/vault/vlt.py'
 ```
 
