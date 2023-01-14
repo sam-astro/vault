@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.4.2"
+__version__="1.4.3"
 
 import sys
 import os
@@ -155,43 +155,44 @@ def ListToString(l):
 ###########################################################
 # This is the interactive text editor for encrypted files #
 ###########################################################
+# Credit: https://github.com/maksimKorzh/code
 
 import curses
 import sys
-from pygments.lexers import PythonLexer, CLexer
-from pygments.formatters import TerminalFormatter
-from pygments.token import (
-    Keyword,
-    Name,
-    Comment,
-    String,
-    Error,
-    Number,
-    Operator,
-    Generic,
-    Token,
-    Whitespace,
-)
-from pygments import highlight
+# from pygments.lexers import PythonLexer, CLexer
+# from pygments.formatters import TerminalFormatter
+# from pygments.token import (
+#     Keyword,
+#     Name,
+#     Comment,
+#     String,
+#     Error,
+#     Number,
+#     Operator,
+#     Generic,
+#     Token,
+#     Whitespace,
+# )
+# from pygments import highlight
 
 editedContent = ""
 contentToEdit = ""
 
-COLOR_SCHEME = {
-    Token: ("gray", "gray"),
-    Comment: ("magenta", "brightmagenta"),
-    Comment.Preproc: ("magenta", "brightmagenta"),
-    Keyword: ("blue", "**"),
-    Keyword.Type: ("green", "*brightgreen*"),
-    Operator.Word: ("**", "**"),
-    Name.Builtin: ("cyan", "brightblue"),
-    Name.Function: ("blue", "brightblue"),
-    Name.Class: ("_green_", "brightblue"),
-    Name.Decorator: ("magenta", "brightmagenta"),
-    Name.Variable: ("blue", "brightblue"),
-    String: ("yellow", "brightyellow"),
-    Number: ("blue", "brightyellow"),
-}
+# COLOR_SCHEME = {
+#     Token: ("gray", "gray"),
+#     Comment: ("magenta", "brightmagenta"),
+#     Comment.Preproc: ("magenta", "brightmagenta"),
+#     Keyword: ("blue", "**"),
+#     Keyword.Type: ("green", "*brightgreen*"),
+#     Operator.Word: ("**", "**"),
+#     Name.Builtin: ("cyan", "brightblue"),
+#     Name.Function: ("blue", "brightblue"),
+#     Name.Class: ("_green_", "brightblue"),
+#     Name.Decorator: ("magenta", "brightmagenta"),
+#     Name.Variable: ("blue", "brightblue"),
+#     String: ("yellow", "brightyellow"),
+#     Number: ("blue", "brightyellow"),
+# }
 
 
 class Editor:
@@ -203,7 +204,7 @@ class Editor:
         self.ROWS -= 1
         curses.raw()
         curses.noecho()
-        self.lexers = {"py": PythonLexer, "c": CLexer}
+        # self.lexers = {"py": PythonLexer, "c": CLexer}
 
     def reset(self):
         self.curx = 0
@@ -212,7 +213,7 @@ class Editor:
         self.offy = 0
         self.buff = []
         self.total_lines = 0
-        self.filename = "Untitled.txt"
+        self.filename = "Untitled"
         self.modified = 0
         self.search_results = []
         self.search_index = 0
