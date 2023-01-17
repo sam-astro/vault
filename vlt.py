@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.4.6"
+__version__="1.4.7"
 
 import sys
 import os
@@ -36,7 +36,7 @@ vaultName = ""
 
 
 ORIGINALCOMMANDS = ['encrypt', 'decrypt', 'exit', 'quit', 'list', 'ls', 'new', 'create', 'append', 'remove', 'passrefresh', 'passcreate', 'printeverything', 'newvault', 'edit', 'clear', 'cls', 'help']
-COMMANDS = ORIGINALCOMMANDS
+commands = ORIGINALCOMMANDS
 RE_SPACE = re.compile('.*\s+$', re.M)
 
 startScreenLogo = """
@@ -93,19 +93,19 @@ class Completer(object):
         line = readline.get_line_buffer()
         # show all commands
         if not line:
-            return [c + ' ' for c in COMMANDS][state]
+            return [c + ' ' for c in commands][state]
         # # account for last argument ending in a space
         # if RE_SPACE.match(buffer):
         #     line.append('')
         # resolve command to the implementation function
         cmd = line.strip()
-        if cmd in COMMANDS:
+        if cmd in commands:
             impl = getattr(self, 'complete_%s' % cmd)
             args = line.split()
             if args:
                 return (impl(args) + [None])[state]
             return [cmd + ' '][state]
-        results = [c + ' ' for c in COMMANDS if c.startswith(cmd)] + [None]
+        results = [c + ' ' for c in commands if c.startswith(cmd)] + [None]
         return results[state]
 
 # Function to AES encrypt and compress data with a password
@@ -140,7 +140,13 @@ def decrypt(enc, password):
     return original_data
     
 def refreshCommands():
-    COMMANDS = ORIGINALCOMMANDS
+    global commands
+    commands = []
+    for cc in ORIGINALCOMMANDS:
+        for h in vaultData['files']:
+            commands.append(cc+" "+h.split("\n")[0])
+    for h in vaultData['files']:
+        commands.append(h.split("\n")[0])
 
 def ListToString(l):
     strout = ""
@@ -902,14 +908,8 @@ try:
             vaultPassword = password
             vaultName = configData['vaults'][currentVault]
             if len(vaultData) > 1:
-                cmds = []
-                for cc in COMMANDS:
-                    for h in vaultData['files']:
-                        cmds.append(cc+" "+h.split("\n")[0])
-                for h in vaultData['files']:
-                    cmds.append(h.split("\n")[0])
-
-                COMMANDS = COMMANDS + cmds
+                refreshCommands()
+                
     
     # If there are no arguments specified, enter interactive mode
     if len(sys.argv) <= 1:
@@ -921,14 +921,6 @@ try:
             
         while True:
             refreshCommands()
-            cmds = []
-            for cc in COMMANDS:
-                for h in vaultData['files']:
-                    cmds.append(cc+" "+h.split("\n")[0])
-            for h in vaultData['files']:
-                cmds.append(h.split("\n")[0])
-
-            COMMANDS = COMMANDS + cmds
             
             comp = Completer()
             # we want to treat '\' as part of a word, so override the delimiters
@@ -1078,14 +1070,6 @@ try:
                     fw.close()
                     
                     refreshCommands()
-                    cmds = []
-                    for cc in COMMANDS:
-                        for h in vaultData['files']:
-                            cmds.append(cc+" "+h.split("\n")[0])
-                    for h in vaultData['files']:
-                        cmds.append(h.split("\n")[0])
-
-                    COMMANDS = COMMANDS + cmds
                     
                     print(Fore.BLACK + Back.GREEN + "Files in Vault: " + Style.RESET_ALL)
                     for f in vaultData['files']:
@@ -1124,14 +1108,6 @@ try:
                                 fw.close()
 
                                 refreshCommands()
-                                cmds = []
-                                for cc in COMMANDS:
-                                    for h in vaultData['files']:
-                                        cmds.append(cc+" "+h.split("\n")[0])
-                                for h in vaultData['files']:
-                                    cmds.append(h.split("\n")[0])
-
-                                COMMANDS = COMMANDS + cmds
 
                                 print(Fore.BLACK + Back.GREEN + "Files in Vault: " + Style.RESET_ALL)
                                 for f in vaultData['files']:
