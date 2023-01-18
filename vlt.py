@@ -1389,7 +1389,7 @@ try:
 
     dbencrypt <name>
         Encrypt the contents of an entry a second time with a different
-        password from your main one
+        password that is separate from your main one
 """
                 print(helpText)
                 
@@ -1423,7 +1423,7 @@ try:
                                     except Exception as e:
                                         print(Fore.RED + "Incorrect Password" + Fore.RESET)
                                         continue
-                                
+                                ListVaultDirectory()
                         occurrences += 1
 
                 # No file was found either, print unknown command
@@ -1465,7 +1465,7 @@ try:
                     for f in otherVaultData['files']:
                         occurred = False
                         for h in vaultData['files']:
-                            if f == h:
+                            if f['title'] == h['title']:
                                 occurred = True
                         if occurred == False:
                             vaultData['files'].append(f)
@@ -1476,7 +1476,7 @@ try:
 
                     ListVaultDirectory()
 
-                    if sys.argv[2].upper() != "-K":
+                    if sys.argv[2].upper() == "-RM":
                         os.remove(sys.argv[len(sys.argv) - 1])
 
 
