@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.5.1"
+__version__="1.6.0"
 
 import sys
 import os
@@ -764,7 +764,47 @@ def upgradeVault(jDat):
     else:
         outJ = jDat
 
-    # print(json.dumps(outJ, sort_keys=True, indent=4))
+    # By this point the version should be the same so just make sure
+    outJ['version'] = __version__
+
+    return outJ
+
+# Make sure vault configuration file is correctly formatted and the newest version
+def upgradeConfig(jDat):
+    outJ = json.loads('{"vaults":[],"version":""}')
+
+    # 1.6.0 Update
+    # This update I started storing the version in the config file
+    try:
+        vv = jDat['version'] # If the version is accessed then there is no problem
+        outJ['version'] = vv
+    except:
+        jDat['version'] = "0.0.0" # If the version can't be accessed, it could be any version before 1.6.0 so just default to 0
+        outJ['version'] = "0.0.0"
+        # If a version cannot be determined, then at least figure out if it is the old vault config format:
+        try:
+            v2 = jDat['vault'] # If this test succeeds, then it is the oldest version of the config
+            jDat['version'] = "0.0.0"
+        except:
+            jDat['version'] = "1.0.0" # Otherwise, it is at least version 1 and doesn't need old processing done first
+            outJ['version'] = "1.0.0"
+
+    # 1.0.0 Update
+    # This checks if the config is older than the update 1.0.0,
+    # where I started allowing multiple vault paths to be in
+    # the config file
+    if compare_versions(jDat['version'], "1.0.0") < 0:
+        outJ['vaults'].append(jDat['vault'])
+        outJ['version'] = "1.0.0" # increase the version, because the file is now updated to at least this version
+
+
+    # Otherwise, the config is compatable so just load it normally
+    else:
+        outJ = jDat
+
+
+    # By this point the version should be the same so just make sure
+    outJ['version'] = __version__
 
     return outJ
 
@@ -849,7 +889,10 @@ try:
             
     with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf") as json_file:
         # Load config file data
-        configData = json.load(json_file)
+        configData = upgradeConfig(json.load(json_file))
+        # Save updated config data
+        with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
+            json.dump(configData, outfile)
         
         # List all known vaults, and ask which one the user wants to load
         print("\nVaults:")
@@ -1029,7 +1072,7 @@ try:
                                     print("\n       " + vaultData['files'][n]['content'].replace("\n", "\n       ") + "\n")
                                 # Double encrypted, decrypt
                                 elif f['encryption'] == "double":
-                                    print(Fore.YELLOW+"This entry is double encrypted, please input the second password for this file"+Style.RESET_ALL)
+                                    print(Fore.YELLOW+"This entry is double encrypted, please input a second password for this file"+Style.RESET_ALL)
                                     b64 = base64.urlsafe_b64decode(f['content'])
                                     encdat = b64
                                     while True:
@@ -1097,17 +1140,27 @@ try:
             # Command to create a new entry `new/create <name>`
             elif inputArgs[0].upper() == "NEW" or inputArgs[0].upper() == "CREATE":
                 if len(inputArgs) >= 2:
-                    vaultData['files'].append({"title":inputArgs[1],"type":"normal","content":"","encryption":"normal"})
-                    # Open terminal text editor to start editing entry
-                    vaultData['files'][-1]['content'] = editableInput(vaultData['files'][-1]['content'].replace("\t", "    "), inputArgs[1])
-                    # Save new entry to vault
-                    fw = open(configData['vaults'][currentVault], 'wb')
-                    fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
-                    fw.close()
+                    # Make sure file with this name does not already exist
+                    doesExist = False
+                    for n, f in enumerate(vaultData['files']):
+                        if inputArgs[1].lower() == vaultData['files'][n]['title'].lower():
+                            doesExist = True
                     
-                    refreshCommands()
-                    
-                    ListVaultDirectory()
+                    # If the file doesn't already exist, continue
+                    if doesExist == False:
+                        vaultData['files'].append({"title":inputArgs[1],"type":"normal","content":"","encryption":"normal"})
+                        # Open terminal text editor to start editing entry
+                        vaultData['files'][-1]['content'] = editableInput(vaultData['files'][-1]['content'].replace("\t", "    "), inputArgs[1])
+                        # Save new entry to vault
+                        fw = open(configData['vaults'][currentVault], 'wb')
+                        fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
+                        fw.close()
+                        
+                        refreshCommands()
+                        
+                        ListVaultDirectory()
+                    else:
+                        print("An entry with this name already exists, please \nchoose another name or edit/delete the other entry.")
                 else:
                     print("New entry format:\nnew <entry's name>")
                     
@@ -1221,6 +1274,7 @@ try:
                                     fw = open(configData['vaults'][currentVault], 'wb')
                                     fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
                                     fw.close()
+                                    ListVaultDirectory()
                                     print(Fore.YELLOW+"Write this password down somewhere (preferably not inside this vault). This file will not be recoverable if you forget it."+Style.RESET_ALL)
                                 # If the entry has already been double encrypted, skip
                                 elif f['encryption'] == "double":
@@ -1350,11 +1404,10 @@ try:
         nobody can see previous printouts
 
     new/create <name>
-        Command to create a new entry with <name>. Make sure to use
-        quotes to have multiple words, and use escape \\n to do newline.
+        Command to create a new entry with <name>
 
     append <name> "<content (in quotes)>"
-        Command to append a string to existing entry
+        Command to append a line to an existing entry
 
     remove <name>
         PERMANENTLY delete an entry. This process is irreversible
@@ -1389,11 +1442,10 @@ try:
                     if inputArgs[0] == f['title']:
                         # If the file is found more than once, then delete the other version
                         if occurrences >= 1:
-                            # vaultData['files'].remove(f)
-                            _=0
-                            # fw = open(configData['vaults'][currentVault], 'wb')
-                            # fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
-                            # fw.close()
+                            vaultData['files'].remove(f)
+                            fw = open(configData['vaults'][currentVault], 'wb')
+                            fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
+                            fw.close()
                         else:
                             # If the encryption is normal, print. Otherwise do double decryption
                             if f['encryption'] == "normal":
@@ -1412,7 +1464,6 @@ try:
                                     except Exception as e:
                                         print(Fore.RED + "Incorrect Password" + Fore.RESET)
                                         continue
-                                ListVaultDirectory()
                         occurrences += 1
 
                 # No file was found either, print unknown command
