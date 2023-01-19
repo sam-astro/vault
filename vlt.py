@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.6.0"
+__version__="1.6.1"
 
 import sys
 import os
@@ -19,6 +19,7 @@ import re
 import readline
 import secrets
 import base64
+from datetime import datetime
 
 buffer_size = 65536 # 64kb
 
@@ -727,8 +728,6 @@ saved in its place.
     print()
     os.execl(sys.executable, *([sys.executable]+sys.argv))
 
-# Check for update
-update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
 
 
 # Make sure vault is correctly formatted and the newest version
@@ -771,7 +770,7 @@ def upgradeVault(jDat):
 
 # Make sure vault configuration file is correctly formatted and the newest version
 def upgradeConfig(jDat):
-    outJ = json.loads('{"vaults":[],"version":""}')
+    outJ = json.loads('{"vaults":[],"version":"","updatedTime":""}')
 
     # 1.6.0 Update
     # This update I started storing the version in the config file
@@ -789,18 +788,26 @@ def upgradeConfig(jDat):
             jDat['version'] = "1.0.0" # Otherwise, it is at least version 1 and doesn't need old processing done first
             outJ['version'] = "1.0.0"
 
-    # 1.0.0 Update
-    # This checks if the config is older than the update 1.0.0,
+    # 0.0.0 Update
+    # This checks if the config is older than the update 0.0.0,
     # where I started allowing multiple vault paths to be in
     # the config file
-    if compare_versions(jDat['version'], "1.0.0") < 0:
+    if compare_versions(jDat['version'], "0.0.0") <= 0:
         outJ['vaults'].append(jDat['vault'])
-        outJ['version'] = "1.0.0" # increase the version, because the file is now updated to at least this version
-
+        jDat['version'] = "1.0.0"
 
     # Otherwise, the config is compatable so just load it normally
     else:
         outJ = jDat
+
+
+    # 1.6.1 Update
+    # This update was when I added date checking to the config and updater
+    if compare_versions(jDat['version'], "1.6.1") < 0:
+        outJ['updatedTime'] = datetime.now().strftime("%d/%m/%y %H:%M:%S")
+        jDat['version'] = "1.6.1"
+
+
 
 
     # By this point the version should be the same so just make sure
@@ -883,7 +890,7 @@ try:
             vaultName = nam
             vaultData = upgradeVault(dataIn)
         
-        data = {'vaults' : vaultFiles}
+        data = {'vaults' : vaultFiles, 'version' : __version__, 'updatedTime' : datetime.now().strftime("%d/%m/%y %H:%M:%S")}
         with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
             json.dump(data, outfile)
             
@@ -893,6 +900,15 @@ try:
         # Save updated config data
         with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
             json.dump(configData, outfile)
+
+            
+        # Check if the user needs update by comparing last updated time to now
+        currentTime = datetime.now()
+        difference = currentTime-datetime.strptime(configData['updatedTime'], "%d/%m/%y %H:%M:%S")
+        if difference.days >= 1: # If it has been at leat 1 day since the last update, then try updating again.
+            print("It has been "+str(difference.days)+" day(s) since last update.")
+            update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
+
         
         # List all known vaults, and ask which one the user wants to load
         print("\nVaults:")
