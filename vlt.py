@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.5.0"
+__version__="1.5.1"
 
 import sys
 import os
@@ -95,10 +95,6 @@ class Completer(object):
         # show all commands
         if not line:
             return [c + ' ' for c in commands][state]
-        # # account for last argument ending in a space
-        # if RE_SPACE.match(buffer):
-        #     line.append('')
-        # resolve command to the implementation function
         cmd = line.strip()
         if cmd in commands:
             impl = getattr(self, 'complete_%s' % cmd)
@@ -114,12 +110,6 @@ def encrypt(data, password):
     key = PBKDF2(password, salt, dkLen=32) # Your key that you can encrypt with
     cipher = AES.new(key, AES.MODE_CFB) # CFB mode
     ciphered_data = cipher.encrypt(data) # Only need to encrypt the data, no padding required for this mode
-    
-    # # Create the Python dictionary with the required data
-    # output_json = {
-    #     'ciphertext': b64encode(ciphered_data).decode('utf-8'),
-    #     'iv': b64encode(cipher.iv).decode('utf-8')
-    # }
     
     # Compress ciphered data with zlib
     compressed_data = zlib.compress(cipher.iv + ciphered_data)
@@ -166,41 +156,9 @@ def ListToString(l):
 
 import curses
 import sys
-# from pygments.lexers import PythonLexer, CLexer
-# from pygments.formatters import TerminalFormatter
-# from pygments.token import (
-#     Keyword,
-#     Name,
-#     Comment,
-#     String,
-#     Error,
-#     Number,
-#     Operator,
-#     Generic,
-#     Token,
-#     Whitespace,
-# )
-# from pygments import highlight
 
 editedContent = ""
 contentToEdit = ""
-
-# COLOR_SCHEME = {
-#     Token: ("gray", "gray"),
-#     Comment: ("magenta", "brightmagenta"),
-#     Comment.Preproc: ("magenta", "brightmagenta"),
-#     Keyword: ("blue", "**"),
-#     Keyword.Type: ("green", "*brightgreen*"),
-#     Operator.Word: ("**", "**"),
-#     Name.Builtin: ("cyan", "brightblue"),
-#     Name.Function: ("blue", "brightblue"),
-#     Name.Class: ("_green_", "brightblue"),
-#     Name.Decorator: ("magenta", "brightmagenta"),
-#     Name.Variable: ("blue", "brightblue"),
-#     String: ("yellow", "brightyellow"),
-#     Number: ("blue", "brightyellow"),
-# }
-
 
 class Editor:
     def __init__(self):
@@ -599,7 +557,6 @@ class Editor:
             if self.read_keyboard() == True:
                 return
             self.update_screen()
-
 
 def texteditor(stdscr):
     editor = Editor()
@@ -1062,15 +1019,47 @@ try:
                     for n, f in enumerate(vaultData['files']):
                         if inputArgs[1] == vaultData['files'][n]['title']:
                             if vaultData['files'][n]['type'] == "password":
-                                lines = vaultData['files'][n]['content'].split("\n")
-                                lines[2] = lines[3]
-                                lines[3] = secrets.token_urlsafe(16)
-                                strval = ListToString(lines)
-                                vaultData['files'][n]['content'] = strval.strip()
-                                print("\n       " + vaultData['files'][n]['content'].replace("\n", "\n       ") + "\n")
+                                # If the encryption is normal, edit normally. Otherwise do double decryption
+                                if f['encryption'] == "normal":
+                                    lines = vaultData['files'][n]['content'].split("\n")
+                                    lines[1] = lines[3]
+                                    lines[3] = secrets.token_urlsafe(16)
+                                    strval = ListToString(lines)
+                                    vaultData['files'][n]['content'] = strval.strip()
+                                    print("\n       " + vaultData['files'][n]['content'].replace("\n", "\n       ") + "\n")
+                                # Double encrypted, decrypt
+                                elif f['encryption'] == "double":
+                                    print(Fore.YELLOW+"This entry is double encrypted, please input the second password for this file"+Style.RESET_ALL)
+                                    b64 = base64.urlsafe_b64decode(f['content'])
+                                    encdat = b64
+                                    while True:
+                                        passw = getpass(Fore.BLACK + Back.WHITE + "Enter this entry's individual password: " + Style.RESET_ALL)
+                                        try:
+                                            # Decode and decrypt
+                                            decdat = decrypt(encdat, passw)
+                                            decodedDecryptedString = decdat.decode("utf-8")
+
+                                            # Generate new password
+                                            lines = decodedDecryptedString.split("\n")
+                                            lines[1] = lines[3]
+                                            lines[3] = secrets.token_urlsafe(16)
+                                            strval = ListToString(lines)
+                                            decodedDecryptedString = strval.strip()
+                                            print("\n       " + decodedDecryptedString.replace("\n", "\n       ") + "\n")
+
+                                            # Save new password and encrypt into vault
+                                            vaultData['files'][n]['content'] = str(base64.urlsafe_b64encode(encrypt(bytes(decodedDecryptedString, "utf-8"), passw)), "utf-8")
+                                            fw = open(configData['vaults'][currentVault], 'wb')
+                                            fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
+                                            fw.close()
+
+                                            break
+                                        except Exception as e:
+                                            print(Fore.RED + "Incorrect Password" + Fore.RESET)
+                                            continue
                             else:
                                 print("This is not a valid Password file.\nCreate one with command:\npasscreate [entry's name]")
-                            break
+                                break
                             found = True
                     
                     if found == False:
@@ -1389,7 +1378,7 @@ try:
 
     dbencrypt <name>
         Encrypt the contents of an entry a second time with a different
-        password that is separate from your main one
+        password that is separate from your master pass
 """
                 print(helpText)
                 
