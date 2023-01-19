@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.6.1"
+__version__="1.6.2"
 
 import sys
 import os
@@ -804,8 +804,12 @@ def upgradeConfig(jDat):
     # 1.6.1 Update
     # This update was when I added date checking to the config and updater
     if compare_versions(jDat['version'], "1.6.1") < 0:
-        outJ['updatedTime'] = datetime.now().strftime("%d/%m/%y %H:%M:%S")
-        jDat['version'] = "1.6.1"
+        try:
+            oT = jDat['updatedTime']
+            outJ['updatedTime'] = oT
+        except:
+            outJ['updatedTime'] = datetime.now().strftime("%d/%m/%y %H:%M:%S")
+            jDat['version'] = "1.6.1"
 
 
 
@@ -897,18 +901,18 @@ try:
     with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf") as json_file:
         # Load config file data
         configData = upgradeConfig(json.load(json_file))
-        # Save updated config data
-        with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
-            json.dump(configData, outfile)
 
-            
         # Check if the user needs update by comparing last updated time to now
         currentTime = datetime.now()
         difference = currentTime-datetime.strptime(configData['updatedTime'], "%d/%m/%y %H:%M:%S")
         if difference.days >= 1: # If it has been at leat 1 day since the last update, then try updating again.
             print("It has been "+str(difference.days)+" day(s) since last update.")
             update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
+            configData['updatedTime'] = datetime.now().strftime("%d/%m/%y %H:%M:%S") # Update last time to now
 
+        # Save updated config data
+        with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
+            json.dump(configData, outfile)
         
         # List all known vaults, and ask which one the user wants to load
         print("\nVaults:")
