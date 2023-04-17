@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.6.2"
+__version__="1.6.3"
 
 import sys
 import os
@@ -538,7 +538,7 @@ class Editor:
         # with open(self.filename, "w") as f:
         editedContent = ""
         for row in self.buff:
-            editedContent += "".join([chr(c) for c in row])
+            editedContent += "".join([chr(c) for c in row])+"\n"
         # editedContent = content
         # f.write(content)
         self.modified = 0
