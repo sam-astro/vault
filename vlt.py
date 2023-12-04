@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.7.7"
+__version__="1.7.8"
 
 import sys
 import os
@@ -906,7 +906,7 @@ try:
         # Check if the user needs update by comparing last updated time to now
         currentTime = datetime.now()
         difference = currentTime-datetime.strptime(configData['updatedTime'], "%d/%m/%y %H:%M:%S")
-        if difference.hours >= 5: # If it has been at leat 1 day since the last update, then try updating again.
+        if difference.seconds//3600 >= 5: # If it has been at leat 5 hours since the last update, then try updating again.
             print("It has been "+str(difference.days)+" day(s) since last update.")
             update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
             configData['updatedTime'] = datetime.now().strftime("%d/%m/%y %H:%M:%S") # Update last time to now
