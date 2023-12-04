@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.7.5"
+__version__="1.7.6"
 
 import sys
 import os
@@ -1398,6 +1398,9 @@ try:
                         
                         entriesArray = []
                         for lines in csvFile:
+                            if lines[0] == "name":
+                                continue
+
                             entryTitle = lines[0]
                             if entryTitle.startswith("https://"):
                                 entryTitle = entryTitle.replace("https://", "")
@@ -1554,6 +1557,10 @@ try:
     dbencrypt <name>
         Encrypt the contents of an entry a second time with a different
         password that is separate from your master pass
+
+    importcsv <path>
+        Imports a .CSV file containing comma-separated website, user, password
+        (These are usually the exported files from browser password managers)
 """
                 print(helpText)
                 
