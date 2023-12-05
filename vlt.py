@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.7.9"
+__version__="1.7.10"
 
 import sys
 import os
@@ -1651,8 +1651,8 @@ try:
                    
         if sys.argv[1].upper() == "ADDVAULT":
             if len(sys.argv) >= 2:
-                if exists(sys.argv[len(sys.argv)-1]):
-                    configData['vaults'].append(sys.argv[len(sys.argv)-1])
+                if exists(sys.argv[2]):
+                    configData['vaults'].append(os.path.abspath(sys.argv[2]))
                     # Save updated config data
                     with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
                         json.dump(configData, outfile)
