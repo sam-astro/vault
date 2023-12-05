@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.6.2"
+__version__="1.7.9"
 
 import sys
 import os
@@ -20,6 +20,7 @@ import readline
 import secrets
 import base64
 from datetime import datetime
+import csv
 
 buffer_size = 65536 # 64kb
 
@@ -37,7 +38,7 @@ vaultName = ""
 
 
 
-ORIGINALCOMMANDS = ['encrypt', 'decrypt', 'exit', 'quit', 'list', 'ls', 'new', 'create', 'append', 'remove', 'passrefresh', 'passcreate', 'printeverything', 'newvault', 'edit', 'clear', 'cls', 'help', 'dbencrypt']
+ORIGINALCOMMANDS = ['encrypt', 'decrypt', 'exit', 'quit', 'list', 'ls', 'new', 'create', 'append', 'remove', 'passrefresh', 'passcreate', 'printeverything', 'newvault', 'edit', 'clear', 'cls', 'help', 'dbencrypt', 'importcsv']
 commands = ORIGINALCOMMANDS
 RE_SPACE = re.compile('.*\s+$', re.M)
 
@@ -538,7 +539,7 @@ class Editor:
         # with open(self.filename, "w") as f:
         editedContent = ""
         for row in self.buff:
-            editedContent += "".join([chr(c) for c in row])
+            editedContent += "".join([chr(c) for c in row])+"\n"
         # editedContent = content
         # f.write(content)
         self.modified = 0
@@ -905,7 +906,7 @@ try:
         # Check if the user needs update by comparing last updated time to now
         currentTime = datetime.now()
         difference = currentTime-datetime.strptime(configData['updatedTime'], "%d/%m/%y %H:%M:%S")
-        if difference.days >= 1: # If it has been at leat 1 day since the last update, then try updating again.
+        if difference.seconds//3600 >= 5: # If it has been at leat 5 hours since the last update, then try updating again.
             print("It has been "+str(difference.days)+" day(s) since last update.")
             update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
             configData['updatedTime'] = datetime.now().strftime("%d/%m/%y %H:%M:%S") # Update last time to now
@@ -944,7 +945,7 @@ try:
         if exists(configData['vaults'][currentVault]) == False:
             print("Vault file at '%s' could not be found. Create new one?" % configData['vaults'][currentVault])
             cnoA = input("Y/n >  ")
-            if cnoA.upper() == "Y":
+            if cnoA.upper() == "Y" or cnoA.upper() == "YES":
                 passwordAccepted = False
                 while passwordAccepted == False:
                     vaultPassword = getpass(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
@@ -962,6 +963,19 @@ try:
                 fw.close()
                 vaultName = configData['vaults'][currentVault]
                 vaultData = upgradeVault(dataIn)
+                
+            elif cnoA.upper() == "N" or cnoA.upper() == "NO":
+                print(Fore.YELLOW + "Would you like to remove this vault from your configuration then?" + Style.RESET_ALL)
+                cnoA = input("Y/n >  ")
+
+                if cnoA.upper() == "Y" or cnoA.upper() == "YES":
+                    configData['vaults'].remove(configData['vaults'][currentVault])
+
+                    # Save updated config data
+                    with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
+                        json.dump(configData, outfile)
+        
+                exit()
                 
             else:
                 exit()
@@ -1198,6 +1212,7 @@ try:
                     fw.close()
                 else:
                     print("Append format:\nappend <entry's name> \"<content (in quotes)>\"")
+                    
             
             # Command to remove an entry `remove <name>`
             elif inputArgs[0].upper() == "REMOVE":
@@ -1320,6 +1335,96 @@ try:
                         except:
                             print(Fore.RED + "Incorrect Password" + Fore.WHITE)
                             continue
+
+            # Command to import passwords from .CSV file -- exported from browser usually
+            elif inputArgs[0].upper() == "IMPORTCSV":
+                with open(inputArgs[1], mode ='r') as file:
+                    csvFile = csv.reader(file)
+                    #for lines in csvFile:
+                    #    print(lines)
+                    mke = input(Fore.YELLOW+"Do you wish to create a new vault with these entries? Selecting 'No' will add them to this existing vault."+Style.RESET_ALL+"\nY/n >  ")
+
+                    if mke.upper() == "Y" or mke.upper() == "YES":
+                        
+                        # Prompt user for vault name
+                        newValDir = ""
+                        nam = ""
+                        while len(nam) <= 0:
+                            nam = input("Enter name of new vault\n(ex. \"MyVault\")\n >  ")
+                            if len(nam)>0:
+                                if nam.endswith(".vlt"):
+                                    newValDir += "./"+nam
+                                else:
+                                    newValDir += "./"+nam+".vlt"
+                            
+                        # Prompt user for vault directory
+                        validDirectory = ""
+                        while validDirectory == "":
+                            dir = input("\nEnter directory to store new vault\n(ex. \"/home/vault/\")\n >  ")
+                            if os.path.isdir(dir):
+                                if not (dir.endswith("/") and dir.endswith("\\")):
+                                    dir += "/"
+                                validDirectory = dir
+                            elif len(dir)>0:
+                                print(Fore.RED + "Not a valid directory"+Style.RESET_ALL)
+                                mke = input("\nThis directory does not exist. Create it?\nY/n >  ")
+                                if mke.upper() == "Y":
+                                    try:
+                                        os.mkdirs(dir)
+                                        if os.path.isdir(dir):
+                                            validDirectory = dir
+                                    except OSError as error:
+                                        print("Directory '%s' can not be created: %s" % (dir, error))
+                            else:
+                                print(Fore.RED + "Not a valid directory"+Style.RESET_ALL)
+                                        
+                        configData['vaults'].append(os.path.abspath(validDirectory+newValDir))
+                        # Save path of vault to config file
+                        data = {'vaults' : configData['vaults']}
+                        with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
+                            json.dump(data, outfile)
+                            
+                        # Prompt user for new password
+                        passwordAccepted = False
+                        while passwordAccepted == False:
+                            password = getpass(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
+                            confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
+                            if password == "":
+                                print(Fore.RED + "Password is invalid")
+                            elif password == confirmedPassword:
+                                passwordAccepted = True
+                            elif password != confirmedPassword:
+                                print(Fore.RED + "Passwords don't match")
+                        
+                        entriesArray = []
+                        for lines in csvFile:
+                            if lines[0] == "name":
+                                continue
+
+                            entryTitle = lines[0]
+                            if entryTitle.startswith("https://"):
+                                entryTitle = entryTitle.replace("https://", "")
+                            if entryTitle.startswith("http://"):
+                                entryTitle = entryTitle.replace("http://", "")
+                            if entryTitle.startswith("www."):
+                                entryTitle = entryTitle.replace("www.", "")
+
+                            entriesArray.append({"title":entryTitle,"type":"normal","content":"user: "+lines[2]+"\npass: "+lines[3],"encryption":"normal"})
+                            #vaultData['files'].append({"title":inputArgs[1],"type":"password","content":"old-password:\n\ncurrent-password:\n","encryption":"normal"})
+
+                        dataIn = {'files':entriesArray,'version':__version__}
+                        fw = open(validDirectory+newValDir, 'wb')
+                        fw.write(encrypt(bytes(json.dumps(dataIn), "utf-8"), password))
+                        fw.close()
+
+                        sw = input("Switch to new vault? " + Fore.GREEN + nam + Fore.RESET + "\nY/n >  ")
+                        if sw.upper() == "Y":
+                            vaultName = configData['vaults'][-1]
+                            currentVault = len(configData['vaults'])-1
+                            vaultData = upgradeVault(dataIn)
+                        
+                        print()
+
             
             # Command to create a new, empty vault `newvault`
             elif inputArgs[0].upper() == "NEWVAULT":
@@ -1452,6 +1557,10 @@ try:
     dbencrypt <name>
         Encrypt the contents of an entry a second time with a different
         password that is separate from your master pass
+
+    importcsv <path>
+        Imports a .CSV file containing comma-separated website, user, password
+        (These are usually the exported files from browser password managers)
 """
                 print(helpText)
                 
@@ -1506,7 +1615,7 @@ try:
                     
                 if sys.argv[2].upper() != "-K":
                     os.remove(sys.argv[len(sys.argv) - 1])
-                    
+                     
         if sys.argv[1].upper() == "COMBINE":
             if len(sys.argv) >= 2:
                 if exists(sys.argv[len(sys.argv)-1]):
@@ -1539,6 +1648,15 @@ try:
                     if sys.argv[2].upper() == "-RM":
                         os.remove(sys.argv[len(sys.argv) - 1])
 
+                   
+        if sys.argv[1].upper() == "ADDVAULT":
+            if len(sys.argv) >= 2:
+                if exists(sys.argv[len(sys.argv)-1]):
+                    configData['vaults'].append(sys.argv[len(sys.argv)-1])
+                    # Save updated config data
+                    with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
+                        json.dump(configData, outfile)
+     
 
 # Clear screen so no data is left in the terminal on exit
 except KeyboardInterrupt:
