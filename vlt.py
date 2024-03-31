@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.8.2"
+__version__="1.8.3"
 
 import sys
 import os
@@ -904,110 +904,113 @@ try:
         with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
             json.dump(data, outfile)
             
-    with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf") as json_file:
-        # Load config file data
-        configData = upgradeConfig(json.load(json_file))
-
-        # Check if the user needs update by comparing last updated time to now
-        currentTime = datetime.now()
-        difference = currentTime-datetime.strptime(configData['updatedTime'], "%d/%m/%y %H:%M:%S")
-        if difference.seconds//3600 >= 5: # If it has been at leat 5 hours since the last update, then try updating again.
-            print("Last checked for updates " + Fore.YELLOW+humanize.naturaltime(datetime.now() - difference) + Style.RESET_ALL)
-            update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
-            configData['updatedTime'] = datetime.now().strftime("%d/%m/%y %H:%M:%S") # Update last time to now
-
-        # Save updated config data
-        with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
-            json.dump(configData, outfile)
-        
-        # List all known vaults, and ask which one the user wants to load
-        print("\nVaults:")
-        for i, vaultDir in enumerate(configData['vaults']):
-            if exists(configData['vaults'][i]):
-                print(Fore.BLACK + Back.GREEN +"\t" + str(i) + "." + Back.RESET+Fore.GREEN+" " + os.path.basename(vaultDir)+"  "+Fore.CYAN+ os.path.dirname(vaultDir)+"/"+ Style.RESET_ALL)
-            else:
-                print(Fore.YELLOW + Back.RED +"\t" + str(i) + ". " + os.path.basename(vaultDir) + Style.RESET_ALL + "  not found at  "+Fore.CYAN+ os.path.dirname(vaultDir)+"/"+ Style.RESET_ALL)
-        
-        # If the number of vaults is more than 1, ask user which one they want to use this time
-        if len(configData['vaults'])>1:
-            valAccepted = False
-            while valAccepted == False:
-                g = input("\nWhich vault do you want to load?\n(0-"+str(len(configData['vaults'])-1)+") >  ")
-                try:
-                    ii = int(g)
-                    if ii < len(configData['vaults']) and ii >= 0:
-                        currentVault = ii
-                        valAccepted = True
-                    else:
-                        print(Fore.RED + "Invalid value, please enter valid index" + Style.RESET_ALL)
-                except:
-                    print(Fore.RED + "Invalid value, please enter valid index" + Style.RESET_ALL)
-        else:
-            print("\nYou only have 1 vault file, automatically loading it: " + Fore.GREEN+os.path.basename(configData['vaults'][0])+Fore.RESET)
-            
-        
-        # If the vault file specified in the config is invalid, ask to create new one
-        if exists(configData['vaults'][currentVault]) == False:
-            print("Vault file at '%s' could not be found. Create new one?" % configData['vaults'][currentVault])
-            cnoA = input("Y/n >  ")
-            if cnoA.upper() == "Y" or cnoA.upper() == "YES":
-                passwordAccepted = False
-                while passwordAccepted == False:
-                    vaultPassword = getpass(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
-                    confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
-                    if vaultPassword == "":
-                        print(Fore.RED + "Password is invalid")
-                    elif vaultPassword == confirmedPassword:
-                        passwordAccepted = True
-                    elif vaultPassword != confirmedPassword:
-                        print(Fore.RED + "Passwords don't match")
-                    
-                dataIn = {'files':[],'version':__version__}
-                fw = open(os.path.abspath(configData['vaults'][currentVault]), 'wb')
-                fw.write(encrypt(bytes(json.dumps(dataIn), "utf-8"), vaultPassword))
-                fw.close()
-                vaultName = configData['vaults'][currentVault]
-                vaultData = upgradeVault(dataIn)
-                
-            elif cnoA.upper() == "N" or cnoA.upper() == "NO":
-                print(Fore.YELLOW + "Would you like to remove this vault from your configuration then?" + Style.RESET_ALL)
-                cnoA = input("Y/n >  ")
-
-                if cnoA.upper() == "Y" or cnoA.upper() == "YES":
-                    configData['vaults'].remove(configData['vaults'][currentVault])
-
-                    # Save updated config data
-                    with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
-                        json.dump(configData, outfile)
-        
-                exit()
-                
-            else:
-                exit()
-        # Otherwise ask for password and decrypt it
-        else:
-            while True:
-                vaultPassword = getpass(Fore.BLACK + Back.WHITE + "Enter password: " + Style.RESET_ALL)
-                fr = open(configData['vaults'][currentVault], 'rb')
-                data = decrypt(fr.read(), vaultPassword)
-                fr.close()
-                try:
-                    vaultData = upgradeVault(json.loads(data))
-                    fw = open(configData['vaults'][currentVault], 'wb')
-                    fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
-                    fw.close()
-
-                    break;
-                except Exception as e:
-                    print(Fore.RED + "Incorrect Password" + Fore.WHITE)
-                    continue
-            vaultName = configData['vaults'][currentVault]
-            if len(vaultData['files']) > 1:
-                refreshCommands()
+   
                 
     
     # If there are no arguments specified, enter interactive mode
     if len(sys.argv) <= 1:
+        with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf") as json_file:
+            # Load config file data
+            configData = upgradeConfig(json.load(json_file))
+    
+            # Check if the user needs update by comparing last updated time to now
+            currentTime = datetime.now()
+            difference = currentTime-datetime.strptime(configData['updatedTime'], "%d/%m/%y %H:%M:%S")
+            if difference.seconds//3600 >= 5: # If it has been at leat 5 hours since the last update, then try updating again.
+                print("Last checked for updates " + Fore.YELLOW+humanize.naturaltime(datetime.now() - difference) + Style.RESET_ALL)
+                update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
+                configData['updatedTime'] = datetime.now().strftime("%d/%m/%y %H:%M:%S") # Update last time to now
+    
+            # Save updated config data
+            with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
+                json.dump(configData, outfile)
+            
+            # List all known vaults, and ask which one the user wants to load
+            print("\nVaults:")
+            for i, vaultDir in enumerate(configData['vaults']):
+                if exists(configData['vaults'][i]):
+                    print(Fore.BLACK + Back.GREEN +"\t" + str(i) + "." + Back.RESET+Fore.GREEN+" " + os.path.basename(vaultDir)+"  "+Fore.CYAN+ os.path.dirname(vaultDir)+"/"+ Style.RESET_ALL)
+                else:
+                    print(Fore.YELLOW + Back.RED +"\t" + str(i) + ". " + os.path.basename(vaultDir) + Style.RESET_ALL + "  not found at  "+Fore.CYAN+ os.path.dirname(vaultDir)+"/"+ Style.RESET_ALL)
+            
+            # If the number of vaults is more than 1, ask user which one they want to use this time
+            if len(configData['vaults'])>1:
+                valAccepted = False
+                while valAccepted == False:
+                    g = input("\nWhich vault do you want to load?\n(0-"+str(len(configData['vaults'])-1)+") >  ")
+                    try:
+                        ii = int(g)
+                        if ii < len(configData['vaults']) and ii >= 0:
+                            currentVault = ii
+                            valAccepted = True
+                        else:
+                            print(Fore.RED + "Invalid value, please enter valid index" + Style.RESET_ALL)
+                    except:
+                        print(Fore.RED + "Invalid value, please enter valid index" + Style.RESET_ALL)
+            else:
+                print("\nYou only have 1 vault file, automatically loading it: " + Fore.GREEN+os.path.basename(configData['vaults'][0])+Fore.RESET)
+                
+            
+            # If the vault file specified in the config is invalid, ask to create new one
+            if exists(configData['vaults'][currentVault]) == False:
+                print("Vault file at '%s' could not be found. Create new one?" % configData['vaults'][currentVault])
+                cnoA = input("Y/n >  ")
+                if cnoA.upper() == "Y" or cnoA.upper() == "YES":
+                    passwordAccepted = False
+                    while passwordAccepted == False:
+                        vaultPassword = getpass(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
+                        confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
+                        if vaultPassword == "":
+                            print(Fore.RED + "Password is invalid")
+                        elif vaultPassword == confirmedPassword:
+                            passwordAccepted = True
+                        elif vaultPassword != confirmedPassword:
+                            print(Fore.RED + "Passwords don't match")
+                        
+                    dataIn = {'files':[],'version':__version__}
+                    fw = open(os.path.abspath(configData['vaults'][currentVault]), 'wb')
+                    fw.write(encrypt(bytes(json.dumps(dataIn), "utf-8"), vaultPassword))
+                    fw.close()
+                    vaultName = configData['vaults'][currentVault]
+                    vaultData = upgradeVault(dataIn)
+                    
+                elif cnoA.upper() == "N" or cnoA.upper() == "NO":
+                    print(Fore.YELLOW + "Would you like to remove this vault from your configuration then?" + Style.RESET_ALL)
+                    cnoA = input("Y/n >  ")
+    
+                    if cnoA.upper() == "Y" or cnoA.upper() == "YES":
+                        configData['vaults'].remove(configData['vaults'][currentVault])
+    
+                        # Save updated config data
+                        with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
+                            json.dump(configData, outfile)
+            
+                    exit()
+                    
+                else:
+                    exit()
+            # Otherwise ask for password and decrypt it
+            else:
+                while True:
+                    vaultPassword = getpass(Fore.BLACK + Back.WHITE + "Enter password: " + Style.RESET_ALL)
+                    fr = open(configData['vaults'][currentVault], 'rb')
+                    data = decrypt(fr.read(), vaultPassword)
+                    fr.close()
+                    try:
+                        vaultData = upgradeVault(json.loads(data))
+                        fw = open(configData['vaults'][currentVault], 'wb')
+                        fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
+                        fw.close()
+    
+                        break;
+                    except Exception as e:
+                        print(Fore.RED + "Incorrect Password" + Fore.WHITE)
+                        continue
+                vaultName = configData['vaults'][currentVault]
+                if len(vaultData['files']) > 1:
+                    refreshCommands()
+
+     
         # Print logo and list files in vault
         print(Fore.LIGHTYELLOW_EX + startScreenLogo + Style.RESET_ALL)
         ListVaultDirectory()
