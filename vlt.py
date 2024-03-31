@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.8.1"
+__version__="1.8.2"
 
 import sys
 import os
@@ -912,7 +912,7 @@ try:
         currentTime = datetime.now()
         difference = currentTime-datetime.strptime(configData['updatedTime'], "%d/%m/%y %H:%M:%S")
         if difference.seconds//3600 >= 5: # If it has been at leat 5 hours since the last update, then try updating again.
-            print("Last check for update: "+humanize.naturaltime(datetime.now() - difference))
+            print("Last checked for updates " + Fore.YELLOW+humanize.naturaltime(datetime.now() - difference) + Style.RESET_ALL)
             update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
             configData['updatedTime'] = datetime.now().strftime("%d/%m/%y %H:%M:%S") # Update last time to now
 
