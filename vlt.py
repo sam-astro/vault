@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.8.7"
+__version__="1.8.8"
 
 import sys
 import os
@@ -732,7 +732,9 @@ saved in its place.
     # Restart script so newer update is the current process
     print(Fore.GREEN + "Restarting with newer update..." + Style.RESET_ALL)
     print()
-    os.execl(sys.executable, os.path.abspath(__file__))
+    arglist = []
+    arglist.append(sys.argv[0])
+    os.execl(sys.executable, os.path.abspath(__file__), *arglist)
 
 
 
