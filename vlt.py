@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.7.10"
+__version__="1.7.11"
 
 import sys
 import os
@@ -28,6 +28,9 @@ init()
 
 BLOCK_SIZE = 16
 salt = b'\x8a\xfe\x1f\xa7aY}\xa3It=\xc3\xccT\xc8\x94\xc11%w]A\xb7\x87G\xd8\xba\x9e\xf8\xec&\xf0'
+
+PASSWORD_ALPHABET = string.ascii_letters + string.digits 
+PASSWORD_LENGTH = 16
 
 vaultPassword = ""
 vaultData = []
@@ -1100,7 +1103,7 @@ try:
                                 if f['encryption'] == "normal":
                                     lines = vaultData['files'][n]['content'].split("\n")
                                     lines[1] = lines[3]
-                                    lines[3] = secrets.token_urlsafe(16)
+                                    lines[3] = ''.join(secrets.choice(PASSWORD_ALPHABET) for i in range(PASSWORD_LENGTH)) 
                                     strval = ListToString(lines)
                                     vaultData['files'][n]['content'] = strval.strip()
                                     print("\n       " + vaultData['files'][n]['content'].replace("\n", "\n       ") + "\n")
@@ -1119,7 +1122,7 @@ try:
                                             # Generate new password
                                             lines = decodedDecryptedString.split("\n")
                                             lines[1] = lines[3]
-                                            lines[3] = secrets.token_urlsafe(16)
+                                            lines[3] = ''.join(secrets.choice(PASSWORD_ALPHABET) for i in range(PASSWORD_LENGTH)) 
                                             strval = ListToString(lines)
                                             decodedDecryptedString = strval.strip()
                                             print("\n       " + decodedDecryptedString.replace("\n", "\n       ") + "\n")
