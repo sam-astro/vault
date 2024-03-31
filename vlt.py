@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.7.12"
+__version__="1.7.13"
 
 import sys
 import os
@@ -30,7 +30,7 @@ init()
 BLOCK_SIZE = 16
 salt = b'\x8a\xfe\x1f\xa7aY}\xa3It=\xc3\xccT\xc8\x94\xc11%w]A\xb7\x87G\xd8\xba\x9e\xf8\xec&\xf0'
 
-PASSWORD_ALPHABET = string.ascii_letters + string.digits 
+PASSWORD_ALPHABET = string.ascii_lowercase + string.digits 
 PASSWORD_LENGTH = 16
 
 vaultPassword = ""
