@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.7.13"
+__version__="1.7.14"
 
 import sys
 import os
@@ -911,7 +911,7 @@ try:
         currentTime = datetime.now()
         difference = currentTime-datetime.strptime(configData['updatedTime'], "%d/%m/%y %H:%M:%S")
         if difference.seconds//3600 >= 5: # If it has been at leat 5 hours since the last update, then try updating again.
-            print("It has been "+str(difference.days)+" day(s) since last update.")
+            print("It has been "+str(difference.strftime("%d days, %H hours"))+" since last update check")
             update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
             configData['updatedTime'] = datetime.now().strftime("%d/%m/%y %H:%M:%S") # Update last time to now
 
