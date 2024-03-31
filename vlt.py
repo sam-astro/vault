@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.8.0"
+__version__="1.8.1"
 
 import sys
 import os
@@ -1661,6 +1661,11 @@ try:
                     # Save updated config data
                     with open("/home/"+pwd.getpwuid(os.getuid()).pw_name+"/vault/va.conf", 'w') as outfile:
                         json.dump(configData, outfile)
+
+                   
+        if sys.argv[1].upper() == "UPDATE":
+            update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py", True)
+            configData['updatedTime'] = datetime.now().strftime("%d/%m/%y %H:%M:%S") # Update last time to now
      
 
 # Clear screen so no data is left in the terminal on exit
