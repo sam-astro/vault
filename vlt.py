@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.7.14"
+__version__="1.8.0"
 
 import sys
 import os
@@ -21,6 +21,7 @@ import secrets
 import string
 import base64
 from datetime import datetime
+import humanize
 import csv
 
 buffer_size = 65536 # 64kb
@@ -911,7 +912,7 @@ try:
         currentTime = datetime.now()
         difference = currentTime-datetime.strptime(configData['updatedTime'], "%d/%m/%y %H:%M:%S")
         if difference.seconds//3600 >= 5: # If it has been at leat 5 hours since the last update, then try updating again.
-            print("It has been "+str(difference.strftime("%d days, %H hours"))+" since last update check")
+            print("Last check for update: "+humanize.naturaltime(datetime.now() - difference))
             update("https://raw.githubusercontent.com/sam-astro/vault/main/vlt.py")
             configData['updatedTime'] = datetime.now().strftime("%d/%m/%y %H:%M:%S") # Update last time to now
 
