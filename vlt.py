@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.7.11"
+__version__="1.7.12"
 
 import sys
 import os
@@ -18,6 +18,7 @@ import pwd
 import re
 import readline
 import secrets
+import string
 import base64
 from datetime import datetime
 import csv
