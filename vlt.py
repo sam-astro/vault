@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.8.9"
+__version__="1.8.10"
 
 import sys
 import os
@@ -1558,6 +1558,9 @@ try:
 
     new/create <name>
         Command to create a new entry with <name>
+
+    rename <current-name> <new-name>
+        Command to change the name of an existing entry
 
     append <name> "<content (in quotes)>"
         Command to append a line to an existing entry
