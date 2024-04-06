@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.8.8"
+__version__="1.8.9"
 
 import sys
 import os
@@ -43,7 +43,7 @@ vaultName = ""
 
 
 
-ORIGINALCOMMANDS = ['encrypt', 'decrypt', 'exit', 'quit', 'list', 'ls', 'new', 'create', 'append', 'remove', 'passrefresh', 'passcreate', 'printeverything', 'newvault', 'edit', 'clear', 'cls', 'help', 'dbencrypt', 'importcsv']
+ORIGINALCOMMANDS = ['encrypt', 'decrypt', 'exit', 'quit', 'list', 'ls', 'new', 'create', 'append', 'remove', 'passrefresh', 'passcreate', 'printeverything', 'newvault', 'edit', 'clear', 'cls', 'help', 'rename', 'dbencrypt', 'importcsv']
 commands = ORIGINALCOMMANDS
 RE_SPACE = re.compile('.*\s+$', re.M)
 
@@ -832,6 +832,7 @@ def ListVaultDirectory():
     print(Fore.BLACK + Back.GREEN + "Files in Vault: " + Style.RESET_ALL)
     print("    "+Fore.BLACK+Back.WHITE+"Title:                   "+Back.RESET+"  " + Back.WHITE+"Type:     "+Back.RESET+"  " + Back.WHITE+"Encryption Lvl:" + Style.RESET_ALL)
     print("    -------------------------  ----------  ---------------")
+    vaultData['files'] = sorted(vaultData['files'], key=lambda k: k['title'])
     for fle in vaultData['files']:
         icon = "🔑" if fle['type'] == "password" else "📝"
         encryptionLvl = fle['encryption'] if fle['encryption'] == "double" else "-"
@@ -1208,7 +1209,23 @@ try:
                         print("An entry with this name already exists, please \nchoose another name or edit/delete the other entry.")
                 else:
                     print("New entry format:\nnew <entry's name>")
+                     
+            # Command to rename an entry `rename <current-name> <new name>`
+            elif inputArgs[0].upper() == "RENAME":
+                if len(inputArgs) >= 3:
+                    for n, f in enumerate(vaultData['files']):
+                        if inputArgs[1] == vaultData['files'][n]['title'].replace("\t", "    ").strip():
+                            vaultData['files'][n]['title'] = inputArgs[2].replace("\t", "    ").strip()
+                            print("Renamed entry from \""+inputArgs[1]+"\" to \""+inputArgs[2]+"\"")
+                            break
+                            
+                    fw = open(configData['vaults'][currentVault], 'wb')
+                    fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
+                    fw.close()
+                else:
+                    print("Rename format:\nrename <entry's name> <new name>")
                     
+
             # Command to append string to an entry `append <name> <content>`
             elif inputArgs[0].upper() == "APPEND":
                 if len(inputArgs) >= 3:
