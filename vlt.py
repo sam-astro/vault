@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.8.10"
+__version__="1.9.0"
 
 import sys
 import os
@@ -8,7 +8,7 @@ import hashlib
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import PBKDF2
 from os.path import exists
-from getpass import getpass
+import pwinput
 import colorama
 from colorama import init
 from colorama import Fore, Back, Style
@@ -886,8 +886,8 @@ try:
             # Create vault file
             passwordAccepted = False
             while passwordAccepted == False:
-                password = getpass(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
-                confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
+                password = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
+                confirmedPassword = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
                 if password == "":
                     print(Fore.RED + "Password is invalid")
                 elif password == confirmedPassword:
@@ -962,8 +962,8 @@ try:
                 if cnoA.upper() == "Y" or cnoA.upper() == "YES":
                     passwordAccepted = False
                     while passwordAccepted == False:
-                        vaultPassword = getpass(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
-                        confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
+                        vaultPassword = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
+                        confirmedPassword = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
                         if vaultPassword == "":
                             print(Fore.RED + "Password is invalid")
                         elif vaultPassword == confirmedPassword:
@@ -996,7 +996,7 @@ try:
             # Otherwise ask for password and decrypt it
             else:
                 while True:
-                    vaultPassword = getpass(Fore.BLACK + Back.WHITE + "Enter password: " + Style.RESET_ALL)
+                    vaultPassword = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Enter password: " + Style.RESET_ALL)
                     fr = open(configData['vaults'][currentVault], 'rb')
                     data = decrypt(fr.read(), vaultPassword)
                     fr.close()
@@ -1063,8 +1063,8 @@ try:
                     # Create and confirm password from user
                     passwordAccepted = False
                     while passwordAccepted == False:
-                        password = getpass(Fore.BLACK + Back.WHITE + "Enter new password: " + Style.RESET_ALL)
-                        confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
+                        password = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Enter new password: " + Style.RESET_ALL)
+                        confirmedPassword = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
                         if password == "":
                             print(Fore.RED + "Password is invalid" + Style.RESET_ALL)
                         elif password == confirmedPassword:
@@ -1090,7 +1090,7 @@ try:
                     fr = open(inputArgs[1], 'rb')
                     data = fr.read()
                     fr.close()
-                    password = getpass(Fore.BLACK + Back.WHITE + "Enter password: " + Style.RESET_ALL)
+                    password = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Enter password: " + Style.RESET_ALL)
                         
                     decryptedData = decrypt(data, password)
                     
@@ -1122,7 +1122,7 @@ try:
                                     b64 = base64.urlsafe_b64decode(f['content'])
                                     encdat = b64
                                     while True:
-                                        passw = getpass(Fore.BLACK + Back.WHITE + "Enter this entry's individual password: " + Style.RESET_ALL)
+                                        passw = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Enter this entry's individual password: " + Style.RESET_ALL)
                                         try:
                                             # Decode and decrypt
                                             decdat = decrypt(encdat, passw)
@@ -1286,7 +1286,7 @@ try:
                                 b64 = base64.urlsafe_b64decode(f['content'])
                                 encdat = b64
                                 while True:
-                                    passw = getpass(Fore.BLACK + Back.WHITE + "Enter this entry's individual password: " + Style.RESET_ALL)
+                                    passw = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Enter this entry's individual password: " + Style.RESET_ALL)
                                     try:
                                         decdat = decrypt(encdat, passw)
                                         decodedDecryptedString = decdat.decode("utf-8")
@@ -1322,8 +1322,8 @@ try:
                                     # Prompt user for new password
                                     passwordAccepted = False
                                     while passwordAccepted == False:
-                                        password = getpass(Fore.BLACK + Back.WHITE + "Create entry password: " + Style.RESET_ALL)
-                                        confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm entry password: " + Style.RESET_ALL)
+                                        password = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Create entry password: " + Style.RESET_ALL)
+                                        confirmedPassword = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Confirm entry password: " + Style.RESET_ALL)
                                         if password == "":
                                             print(Fore.RED + "Password is invalid")
                                         elif password == confirmedPassword:
@@ -1352,7 +1352,7 @@ try:
                 mke = input(Fore.YELLOW+"Are you sure? This will print the contents of ALL entries to the terminal."+Style.RESET_ALL+"\nY/n >  ")
                 if mke.upper() == "Y":
                     while True:
-                        passw = getpass(Fore.BLACK + Back.WHITE + "Enter password to continue: " + Style.RESET_ALL)
+                        passw = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Enter password to continue: " + Style.RESET_ALL)
                         fr = open(configData['vaults'][currentVault], 'rb')
                         dat = decrypt(fr.read(), passw)
                         fr.close()
@@ -1415,8 +1415,8 @@ try:
                         # Prompt user for new password
                         passwordAccepted = False
                         while passwordAccepted == False:
-                            password = getpass(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
-                            confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
+                            password = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
+                            confirmedPassword = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
                             if password == "":
                                 print(Fore.RED + "Password is invalid")
                             elif password == confirmedPassword:
@@ -1498,8 +1498,8 @@ try:
                 # Prompt user for new password
                 passwordAccepted = False
                 while passwordAccepted == False:
-                    password = getpass(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
-                    confirmedPassword = getpass(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
+                    password = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Create vault password: " + Style.RESET_ALL)
+                    confirmedPassword = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Confirm password: " + Style.RESET_ALL)
                     if password == "":
                         print(Fore.RED + "Password is invalid")
                     elif password == confirmedPassword:
@@ -1616,7 +1616,7 @@ try:
                                 b64 = base64.urlsafe_b64decode(f['content'])
                                 encdat = b64
                                 while True:
-                                    passw = getpass(Fore.BLACK + Back.WHITE + "Enter this entry's individual password: " + Style.RESET_ALL)
+                                    passw = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Enter this entry's individual password: " + Style.RESET_ALL)
                                     try:
                                         decdat = decrypt(encdat, passw)
                                         print("      " + decdat.decode("utf-8").replace("\n", "\n      ") + "\n")
@@ -1651,7 +1651,7 @@ try:
             if len(sys.argv) >= 2:
                 if exists(sys.argv[len(sys.argv)-1]):
                     while True:
-                        otherPass = getpass(Fore.BLACK + Back.WHITE + "Enter other vault's password: " + Style.RESET_ALL)
+                        otherPass = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Enter other vault's password: " + Style.RESET_ALL)
                         fr = open(sys.argv[len(sys.argv) - 1], 'rb')
                         data = decrypt(fr.read(), otherPass)
                         fr.close()
