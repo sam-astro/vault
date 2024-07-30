@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.9.0"
+__version__="1.9.1"
 
 import sys
 import os
@@ -1364,6 +1364,9 @@ try:
                             print(Fore.RED + "Incorrect Password" + Fore.WHITE)
                             continue
 
+            ## Command to export passwords to a .CSV file usable to import into browser
+            #elif inputArgs[0].upper() == "EXPORTCSV":
+
             # Command to import passwords from .CSV file -- exported from browser usually
             elif inputArgs[0].upper() == "IMPORTCSV":
                 with open(inputArgs[1], mode ='r') as file:
@@ -1452,7 +1455,52 @@ try:
                             vaultData = upgradeVault(dataIn)
                         
                         print()
+                    
 
+                    elif mke.upper() == "N" or mke.upper() == "NO":
+                        
+                        mke = input(Fore.YELLOW+"Are you sure? This will overwrite any existing entries in this vault, but will not remove any that were added."+Style.RESET_ALL+"\nY/n >  ")
+                        
+                        if mke.upper() == "N":
+                            print("Cancelled remove operation")
+                            break
+
+                        entriesArray = []
+                        for lines in csvFile:
+                            if lines[0] == "name":
+                                continue
+
+                            entryTitle = lines[0]
+                            if entryTitle.startswith("https://"):
+                                entryTitle = entryTitle.replace("https://", "")
+                            if entryTitle.startswith("http://"):
+                                entryTitle = entryTitle.replace("http://", "")
+                            if entryTitle.startswith("www."):
+                                entryTitle = entryTitle.replace("www.", "")
+
+                            entriesArray.append({"title":entryTitle,"type":"normal","content":"user: "+lines[2]+"\npass: "+lines[3],"encryption":"normal"})
+                            #vaultData['files'].append({"title":inputArgs[1],"type":"password","content":"old-password:\n\ncurrent-password:\n","encryption":"normal"})
+
+                        for e in entriesArray:
+                            found = False
+                            for i,f in enumerate(vaultData['files']):
+                                if f['title'] == e['title']:
+                                    vaultData['files'][i] = e
+                                    found = True
+                                    print(" ^ update \"" + e['title'] + "\"")
+                                    break
+
+                            if found == False:
+                                vaultData['files'].append(e)
+                                print(" + add new \"" + e['title'] + "\"")
+
+                        # Save newly edited data to vault
+                        fw = open(configData['vaults'][currentVault], 'wb')
+                        fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
+                        fw.close()
+                        ListVaultDirectory()
+                        
+                        print()
             
             # Command to create a new, empty vault `newvault`
             elif inputArgs[0].upper() == "NEWVAULT":
@@ -1592,6 +1640,8 @@ try:
     importcsv <path>
         Imports a .CSV file containing comma-separated website, user, password
         (These are usually the exported files from browser password managers)
+        If an entry already exists with the same name, the CSV version will be
+        counted as the most recent and overwrite the entry in the database
 """
                 print(helpText)
                 
