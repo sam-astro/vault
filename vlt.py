@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.9.1"
+__version__="1.9.3"
 
 import sys
 import os
@@ -43,7 +43,7 @@ vaultName = ""
 
 
 
-ORIGINALCOMMANDS = ['encrypt', 'decrypt', 'exit', 'quit', 'list', 'ls', 'new', 'create', 'append', 'remove', 'passrefresh', 'passcreate', 'printeverything', 'newvault', 'edit', 'clear', 'cls', 'help', 'rename', 'dbencrypt', 'importcsv']
+ORIGINALCOMMANDS = ['encrypt', 'decrypt', 'exit', 'quit', 'list', 'ls', 'new', 'create', 'append', 'remove', 'addfile', 'passrefresh', 'passcreate', 'printeverything', 'newvault', 'edit', 'clear', 'cls', 'help', 'rename', 'dbencrypt', 'importcsv', 'search', 'searchcontents']
 commands = ORIGINALCOMMANDS
 RE_SPACE = re.compile('.*\s+$', re.M)
 
@@ -834,7 +834,12 @@ def ListVaultDirectory():
     print("    -------------------------  ----------  ---------------")
     vaultData['files'] = sorted(vaultData['files'], key=lambda k: k['title'])
     for fle in vaultData['files']:
-        icon = "🔑" if fle['type'] == "password" else "📝"
+        if fle['type'] == "password":
+            icon = "🔑"
+        elif fle['type'] == "file":
+            icon = "💾"
+        else:
+            icon = "📝"
         encryptionLvl = fle['encryption'] if fle['encryption'] == "double" else "-"
         encryptionLvlIcon = "🔐x2" if fle['encryption'] == "double" else "  "
         print(("{:3s}{:25s}  {:10s}  {:7s}{:3s}").format(icon, fle['title'], fle['type'], encryptionLvl, encryptionLvlIcon))
@@ -1182,7 +1187,41 @@ try:
             # Command to clear terminal `clear/cls`
             elif inputArgs[0].upper() == "CLEAR" or  inputArgs[0].upper() == "CLS":
                 os.system('cls' if os.name == 'nt' else 'clear')
+                     
+            # Command to add an existing file to the vault `addfile <path>`
+            elif inputArgs[0].upper() == "ADDFILE":
+                if len(inputArgs) >= 2:
+                    # Make sure file with this name does not already exist
+                    doesExist = False
+                    for n, f in enumerate(vaultData['files']):
+                        if inputArgs[1].lower() == vaultData['files'][n]['title'].lower():
+                            doesExist = True
                     
+                    # If the file doesn't already exist, continue
+                    if doesExist == False:
+                        try:
+                            with open(inputArgs[1], "rb") as file:
+                                vaultData['files'].append({"title":inputArgs[1],"type":"file","content":"","encryption":"normal"})
+
+                                vaultData['files'][-1]['content'] = str(base64.urlsafe_b64encode(file.read()), "utf-8")
+
+                                # Save new entry to vault
+                                fw = open(configData['vaults'][currentVault], 'wb')
+                                fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
+                                fw.close()
+                                
+                                refreshCommands()
+                                
+                                print("Added new file \"" + inputArgs[1] + "\"")
+                                print()
+                        except:
+                            print(Fore.RED + "File at \"" + inputArgs[1] + "\" was not found" + Style.RESET_ALL)
+                    else:
+                        print("An entry with this name already exists, please \nchoose another name or edit/delete the other entry.")
+                else:
+                    print("New entry format:\nnew <entry's name>")
+                     
+
             # Command to create a new entry `new/create <name>`
             elif inputArgs[0].upper() == "NEW" or inputArgs[0].upper() == "CREATE":
                 if len(inputArgs) >= 2:
@@ -1241,6 +1280,52 @@ try:
                 else:
                     print("Append format:\nappend <entry's name> \"<content (in quotes)>\"")
                     
+             
+            # Command to search for entries by string `search <substring>`
+            elif inputArgs[0].upper() == "SEARCH":
+                if len(inputArgs) >= 2:
+                    for f in vaultData['files']:
+                        if inputArgs[1] in f['title']:
+                            highlightedString = f['title'].replace(inputArgs[1], Fore.BLACK + Back.YELLOW + inputArgs[1] + Style.RESET_ALL)
+                            print(" * " + highlightedString)
+                else:
+                    print("Search entry format:\nsearch <substring>")
+                print()
+            
+
+            # Command to search for entries by string in its contents `searchcontents <substring>`
+            elif inputArgs[0].upper() == "SEARCHCONTENTS":
+                if len(inputArgs) >= 2:
+                    mke = input(Fore.YELLOW+"Are you sure? This may print the contents of a large number entries to the terminal, which can be unsecure."+Style.RESET_ALL+"\nY/n >  ")
+                    if mke.upper() == "Y":
+                        while True:
+                            #try:
+                            passw = pwinput.pwinput(Fore.BLACK + Back.WHITE + "Enter password to continue: " + Style.RESET_ALL)
+                            fr = open(configData['vaults'][currentVault], 'rb')
+                            dat = decrypt(fr.read(), passw)
+                            fr.close()
+                            #except KeyboardInterrupt:
+                            #    break
+                            try:
+                                json.loads(dat)
+    
+                                for f in vaultData['files']:
+                                    if inputArgs[1] in f['content']:
+                                        highlightedString = f['content'].replace(inputArgs[1], Fore.BLACK + Back.YELLOW + inputArgs[1] + Style.RESET_ALL)
+                                        print(Fore.GREEN + f['title'] + Style.RESET_ALL)
+                                        print(highlightedString)
+                                        print()
+                    
+                                break
+                            except:
+                                print(Fore.RED + "Incorrect Password" + Fore.WHITE)
+                                continue
+    
+                else:
+                    print("Search entry format:\nsearchcontents <substring>")
+                print()
+
+                
             
             # Command to remove an entry `remove <name>`
             elif inputArgs[0].upper() == "REMOVE":
@@ -1498,7 +1583,6 @@ try:
                         fw = open(configData['vaults'][currentVault], 'wb')
                         fw.write(encrypt(bytes(json.dumps(vaultData), "utf-8"), vaultPassword))
                         fw.close()
-                        ListVaultDirectory()
                         
                         print()
             
@@ -1616,6 +1700,12 @@ try:
     remove <name>
         PERMANENTLY delete an entry. This process is irreversible
 
+    addfile <path>
+        Add an existing file from <path> to the vault. This will be stored
+        in the vault database file, and therefore encrypt it. Try to avoid
+        adding substantially large files, especially to your normal password
+        vaults, because it does add to decryption and load times.
+
     printeverything
         Print the entire vault json data to the terminal. !! (This
         process shows all of the unencrypted entries, and is only
@@ -1636,12 +1726,20 @@ try:
     dbencrypt <name>
         Encrypt the contents of an entry a second time with a different
         password that is separate from your master pass
-
+    
     importcsv <path>
         Imports a .CSV file containing comma-separated website, user, password
         (These are usually the exported files from browser password managers)
         If an entry already exists with the same name, the CSV version will be
         counted as the most recent and overwrite the entry in the database
+
+    search <substring>
+        Search all file entries in the database to see if their title contains
+        <substring>
+
+    searchcontents <substring>
+        Search all file entries in the database to see if their contents contains
+        <substring>
 """
                 print(helpText)
                 
