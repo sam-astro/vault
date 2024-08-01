@@ -1,5 +1,5 @@
 # Version used for auto-updater
-__version__="1.9.4"
+__version__="1.9.6"
 
 import sys
 import os
@@ -1202,7 +1202,10 @@ try:
                     if doesExist == False:
                         try:
                             with open(inputArgs[1], "rb") as file:
-                                vaultData['files'].append({"title":inputArgs[1],"type":"file","content":"","encryption":"normal"})
+                                filename = inputArgs[1]
+                                if '/' in filename:
+                                    filename = filename.split('/')[-1]
+                                vaultData['files'].append({"title":filename,"type":"file","content":"","encryption":"normal"})
 
                                 vaultData['files'][-1]['content'] = str(base64.urlsafe_b64encode(file.read()), "utf-8")
 
@@ -1213,7 +1216,7 @@ try:
                                 
                                 refreshCommands()
                                 
-                                print("Added new file \"" + inputArgs[1] + "\"")
+                                print("Added new file called: \""+filename+"\", located at path: \"" + inputArgs[1] + "\"")
                                 print()
                         except:
                             print(Fore.RED + "File at \"" + inputArgs[1] + "\" was not found" + Style.RESET_ALL)
@@ -1329,7 +1332,7 @@ try:
                 
             
             # Command to remove an entry `remove <name>`
-            elif inputArgs[0].upper() == "REMOVE":
+            elif inputArgs[0].upper() == "REMOVE" or inputArgs[0].upper() == "RM":
                 if len(inputArgs) >= 2:
                     for f in vaultData['files']:
                         if inputArgs[1] == f['title'].strip():
@@ -1698,7 +1701,7 @@ try:
     append <name> "<content (in quotes)>"
         Command to append a line to an existing entry
 
-    remove <name>
+    remove/rm <name>
         PERMANENTLY delete an entry. This process is irreversible
 
     addfile <path>
