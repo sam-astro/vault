@@ -1,5 +1,7 @@
 # vault
 
+A secure, encrypted file and password vault
+
 ## How to install:
 1. Download vault:
 ```
